@@ -26,7 +26,7 @@ class YouTube {
     $this->client->setScopes([
         'https://www.googleapis.com/auth/youtube.force-ssl',
     ]);
-    $this->client->setAuthConfig('YouTubeConfig.json');
+    $this->client->setAuthConfig('client_secret.json');
     $this->client->setAccessType('offline');
 
     // Request a access token on first use
@@ -36,6 +36,14 @@ class YouTube {
     // Otherwise setup YouTube API
     else {
       $this->connectWithToken();
+    }
+
+    // Make sure a streamKeyId is set
+    if (empty(CONFIG['youtube']['streamKeyId'])) {
+      // Show all available stream keys to the user
+      $this->displayStreamKeyList();
+      // Make this api invalid
+      $this->service = null;
     }
   }
 
@@ -167,6 +175,30 @@ class YouTube {
     $broadcast->setStatus($broadcastStatus);
 
     return $broadcast;
+  }
+
+  /**
+   * List all available stream keys to the user to add to the configuration
+   */
+  protected function displayStreamKeyList() {
+    $streamList = array();
+    $queryParams = array(
+      'mine' => true,
+    );
+    // Get all available livestreams
+    do {
+      $response = $this->service->liveStreams->listLiveStreams('snippet', $queryParams);
+      $streamList = array_merge($streamList, $response['items']);
+      $queryParams['pageToken'] = isset($response['nextPageToken']) ? $response['nextPageToken'] : '';
+    } while('' !== $queryParams['pageToken']);
+
+    // Display them to the user
+    echo 'No valid streamKeyId has been set yet. Please choose one from below and insert it in the config.php file under "youtube > streamKeyId":<br><br>';
+    foreach ($streamList as $stream) {
+      echo $stream->snippet->title . '<br>';
+      echo $stream->id . '<br>';
+      echo '<hr><br>';
+    }
   }
 
   /**

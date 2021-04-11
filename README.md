@@ -47,7 +47,7 @@ First,  [Enable APIs for your project](https://developers.google.com/youtube/v3/
 As a **redirect URI** you should set the url to the index.php file of this program.
 The **client_secret.json** file should go in the same directory as this program and should only be accessable locally.
 Now navigate to this projects index.php file with a browser and follow the instructions to complete authentification.
- - [ ] **TODO**: select streamKeyId
+As a last step all available stream keys will be shown. Copy the id from one of them (it is not the stream key itself) and put it in the config.php file under "youtube > stremKeyId".
 
 #### More Setup
 All other settings are explained in the config.php file itself.
