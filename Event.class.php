@@ -113,12 +113,14 @@ class Event {
     foreach($serviceTypeList as $serviceType) {
       if ($serviceType->title === CONFIG['events']['speaker']) $serviceTypeMatch['speaker'] = $serviceType->id;
     }
-    foreach($data['services'] as $service) {
-      switch ($service['service_id']) {
-        // Speaker
-        case $serviceTypeMatch['speaker']:
-          $this->speaker = $service['name'];
-          break;
+    if (isset($data['services']) && is_array($data['services'])) {
+      foreach($data['services'] as $service) {
+        switch ($service['service_id']) {
+          // Speaker
+          case $serviceTypeMatch['speaker']:
+            $this->speaker = $service['name'];
+            break;
+        }
       }
     }
 
