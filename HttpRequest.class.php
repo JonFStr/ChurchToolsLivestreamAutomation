@@ -8,15 +8,15 @@ class HttpRequest {
   private array $savedCookies = array();
 
   /**
-   * Send request to $url with $data and get a json object in return
+   * Send request to $url with $data and get raw data in return
    *
    * @param string $url The url to send the request to
    * @param array $data The data to send with the request
    * @param string $method The request method to use
    *
-   * @return array The parsed json response
+   * @return array The response
    */
-  public function getJson(string $url, array $data=array(), string $method='POST') {
+  public function getRaw(string $url, array $data=array(), string $method='POST') {
     $CSRF = '';
     if ('' !== $this->csrfToken) {
       $CSRF = "CSRF-Token: " . $this->csrfToken . "\r\n";
@@ -29,12 +29,28 @@ class HttpRequest {
         'content' => http_build_query($data),
       ),
     );
+
     $context  = stream_context_create($options);
     $result = file_get_contents($url, false, $context);
-    $decoded = json_decode($result, true);
 
     // Save login cookies for next request
     $this->saveCookies($http_response_header);
+
+    return $result;
+  }
+
+  /**
+   * Send request to $url with $data and get a json object in return
+   *
+   * @param string $url The url to send the request to
+   * @param array $data The data to send with the request
+   * @param string $method The request method to use
+   *
+   * @return array The parsed json response
+   */
+  public function getJson(string $url, array $data=array(), string $method='POST') {
+    $result = $this->getRaw($url, $data, $method);
+    $decoded = json_decode($result, true);
 
     if (null === $decoded) {
       return array('status' => 'failure');

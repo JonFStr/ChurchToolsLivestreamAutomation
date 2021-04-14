@@ -66,6 +66,10 @@ class Event {
    * The events broadcasts privacy status
    */
   protected $privacyStatus;
+  /**
+   * The events custom thumbnail
+   */
+  protected FileConnection $thumbnail;
 
   /**
    * Load all event data
@@ -117,6 +121,9 @@ class Event {
           break;
       }
     }
+
+    // Set custom or default thumbnail
+    $this->setThumbnail();
   }
 
   /**
@@ -205,7 +212,7 @@ class Event {
     $broadcastInformation = $this->getBroadcastInformation();
 
     // Create YouTube broadcast
-    $this->broadcast = $this->youtube->createBroadcast($broadcastInformation['title'], $broadcastInformation['description'], $this->startTime, $this->endTime, new Link(CONFIG['youtube']['thumbnail']['url']), $this->getPrivacyStatus());
+    $this->broadcast = $this->youtube->createBroadcast($broadcastInformation['title'], $broadcastInformation['description'], $this->startTime, $this->endTime, $this->thumbnail->getDownloadLink(), $this->privacyStatus);
     // Update the event link
     $this->link = Link::fromYouTubeBroadcast($this->broadcast);
     $this->update();
@@ -243,7 +250,7 @@ class Event {
     // Gather information
     $broadcastInformation = $this->getBroadcastInformation();
     // Update broadcast
-    $this->broadcast = $this->youtube->updateBroadcast($this->broadcast, $broadcastInformation['title'], $broadcastInformation['description'], $this->startTime, $this->endTime, new Link(CONFIG['youtube']['thumbnail']['url']), $this->privacyStatus);
+    $this->broadcast = $this->youtube->updateBroadcast($this->broadcast, $broadcastInformation['title'], $broadcastInformation['description'], $this->startTime, $this->endTime, $this->thumbnail->getDownloadLink(), $this->privacyStatus);
   }
 
   /**
@@ -263,5 +270,27 @@ class Event {
     }
     // Use default value if none was set
     $this->privacyStatus = new YouTubePrivacyStatus();
+  }
+
+  /**
+   * Set the events thumbnail
+   */
+  protected function setThumbnail() {
+    $availableFiles = $this->churchToolsApi->getEventFiles($this);
+
+    // Check if any file is a thumbnail
+    foreach ($availableFiles as $file) {
+      if ($file->getName() === CONFIG['events']['thumbnail_name']) {
+        $this->thumbnail = $file;
+        return;
+      }
+    }
+
+    // No thumbnail was set, so use the default one
+    global $youTubeDefaultThumbnail;
+    if (null === $youTubeDefaultThumbnail) {
+      $youTubeDefaultThumbnail = FileConnection::fromExternalUrl(CONFIG['youtube']['thumbnail']);
+    }
+    $this->thumbnail = $youTubeDefaultThumbnail;
   }
 }

@@ -54,8 +54,8 @@ class ChurchTools {
     $params['func'] = strtolower($function);
     $response = $this->httpRequests->getJson($request_url, $params);
 
-    if ($response['status'] !== 'success') {
-      echo '<pre>'; var_export( $response ); echo '</pre>';
+    if (!isset($response['status']) || $response['status'] !== 'success') {
+      echo htmlspecialchars(var_export($response, true));exit;
       return false;
     }
     else return $response;
@@ -101,15 +101,19 @@ class ChurchTools {
     $serviceTypes = $this->getAllServiceTypes();
     // Build the events
     $eventList = array();
+
+
     foreach($eventDataList as $eventId => $eventData) {
       $eventFactList = isset($factList[$eventId]) ? $factList[$eventId] : array();
       $event = new Event($eventData, $this, $eventFactList, $serviceTypes);
+
       // Only keep upcoming events
       if ($event->endTime < new DateTimeImmutable()) continue;
       // Make sure the event isn't too far in the future
       if ($latestStart < $event->startTime) continue;
       $eventList[] = $event;
     }
+
     return $eventList;
   }
 
@@ -178,5 +182,39 @@ class ChurchTools {
 
     $response = $this->sendRequest('ChurchService', 'updateEvent', $requestData);
     return isset($response['status']) && 'success' === $response['status'];
+  }
+
+  /**
+   * Get all of an events files
+   *
+   * @param Event $event The event to get the files for
+   *
+   * @return array All the events files
+   */
+  public function getEventFiles(Event $event) {
+    // Get all files
+    $response = $this->sendRequest('ChurchService', 'getFiles', array());
+    $fileList = array();
+
+    // Convert all files to objects
+    foreach ($response['data'] as $fileData) {
+      if ($fileData['domain_type'] == 'service' && $fileData['domain_id'] == $event->id) {
+        $fileList[] = FileConnection::fromChurchToolsFileData($fileData, $this);
+      }
+    }
+
+    return $fileList;
+  }
+
+  /**
+   * Download a file
+   *
+   * @return string The file in binary form
+   */
+  public function downloadFile(int $fileId, string $fileName) {
+    $query = '?q=churchservice/filedownload&filename=' . $fileName . '&id=' . $fileId;
+    $file = $this->httpRequests->getRaw($this->instanceUrl . $query);
+
+    return $file;
   }
 }
