@@ -12,8 +12,7 @@ require(CONFIG_FILE);
 // Set php timezone
 date_default_timezone_set(CONFIG['timezone']);
 
-
-const FORCE_RENEW = true;
+const FORCE_RENEW = false;
 
 // Setup ChruchTools API
 $churchtools = new ChurchTools(CONFIG['churchtools']['url'], CONFIG['churchtools']['userId'], CONFIG['churchtools']['token']);
@@ -27,10 +26,10 @@ if ($youtube->isValid()) {
   // Get all events that are 6 days into the future
   $datetime = new DateTime(sprintf('+%d day', CONFIG['events']['days_to_load_in_advance']));
   $eventList = $churchtools->getUpcomingEvents($datetime);
-
   // Get all scheduled boradcasts
   $broadcastList = $youtube->getAllScheduledBoradcasts();
-  // Add a broadcast to every livestream event
+
+  // Go through all events
   foreach ($eventList as $event) {
     // Try to find an existing broadcast for this event
     foreach ($broadcastList as $broadcast) {

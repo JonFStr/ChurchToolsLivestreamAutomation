@@ -40,7 +40,7 @@ class ChurchTools {
   }
 
   /**
-   * Send a request to the ChurchTools API
+   * Send a request to the old ChurchTools API
    *
    * @param string $module The ChurchTools module to reference
    * @param string $function The function in the module to call
@@ -50,15 +50,32 @@ class ChurchTools {
    * @TODO: Implement logging
    */
   protected function sendRequest(string $module, string $function, array $params=array()) {
-    $request_url = $this->instanceUrl . '?q=' . strtolower($module) . '/ajax';
+    $requestUrl = $this->instanceUrl . '?q=' . strtolower($module) . '/ajax';
     $params['func'] = strtolower($function);
-    $response = $this->httpRequests->getJson($request_url, $params);
+    $response = $this->httpRequests->getJson($requestUrl, $params);
 
     if (!isset($response['status']) || $response['status'] !== 'success') {
       echo htmlspecialchars(var_export($response, true));exit;
       return false;
     }
     else return $response;
+  }
+
+  /**
+   * Send a request to the ChurchTools REST API
+   *
+   * @param string $path The API path
+   * @param string $type Request type
+   * @param array $params Additional parameters
+   *
+   * @return array|false The parsed response or false on failure
+   * @TODO: Implement logging
+   */
+  protected function sendRestRequest(string $path, string $type='POST', array $params=array()) {
+    $requestUrl = $this->instanceUrl . 'api' . $path;
+    $response = $this->httpRequests->getJson($requestUrl, $params, $type, false);
+
+    return $response;
   }
 
   /**

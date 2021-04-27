@@ -30,7 +30,7 @@ class HttpRequest {
       ),
     );
 
-    $context  = stream_context_create($options);
+    $context = stream_context_create($options);
     $result = file_get_contents($url, false, $context);
 
     // Save login cookies for next request

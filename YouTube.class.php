@@ -30,7 +30,7 @@ class YouTube {
     $this->client->setAccessType('offline');
 
     // Request a access token on first use
-    if ('' === CONFIG['youtube']['refreshToken']) {
+    if (empty(CONFIG['youtube']['refreshToken'])) {
       $this->getRefreshToken();
     }
     // Otherwise setup YouTube API
@@ -82,7 +82,7 @@ class YouTube {
 
     // Save the refresh token
     $configFileContent = file_get_contents(CONFIG_FILE);
-    $configFileContent = preg_replace("/'refreshToken' => '.*',/m", sprintf("'refreshToken' => '%s',", $response['refresh_token']), $configFileContent);
+    $configFileContent = preg_replace("/'refreshToken' => ['\"].*['\"],/m", sprintf("'refreshToken' => '%s',", $response['refresh_token']), $configFileContent);
     file_put_contents(CONFIG_FILE, $configFileContent);
     // Done
     echo 'Connection to YouTube API established, the program can now run autonomously<br>';
@@ -106,7 +106,7 @@ class YouTube {
       }
       // Save the access token
       $configFileContent = file_get_contents(CONFIG_FILE);
-      $configFileContent = preg_replace("/'accessToken' => '.*',/m", sprintf("'accessToken' => '%s',", json_encode($accessToken)), $configFileContent);
+      $configFileContent = preg_replace("/'accessToken' => ['\"].*['\"],/m", sprintf("'accessToken' => '%s',", json_encode($accessToken)), $configFileContent);
       file_put_contents(CONFIG_FILE, $configFileContent);
     }
 

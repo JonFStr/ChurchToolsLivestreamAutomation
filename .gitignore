@@ -3,3 +3,4 @@ composer.lock
 config.php
 client_secret.json
 storedEventListHash
+img
