@@ -36,7 +36,6 @@ if ($youtube->isValid()) {
     // Try to find an existing broadcast for this event
     foreach ($broadcastList as $broadcast) {
       if ($event->isEventBroadcast($broadcast)) {
-        // TODO: Update YouTube broadcast if ChurchTools information has changed
         $event->attachYouTubeBroadcast($broadcast, $youtube);
         break;
       }

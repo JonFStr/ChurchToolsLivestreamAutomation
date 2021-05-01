@@ -23,15 +23,29 @@ class WordPress {
    *
    * @param Event $event The event to generate the content for
    * @param string $template The content template to put all data in
+   * @param array[Event] $eventList List of all events, ordered descending by end date
    *
    * @return string Generated shortcode
    */
-  protected static function renderEventContentTemplate(Event $event, string $template) {
+ protected static function renderEventContentTemplate(Event $event, string $template, array $eventList) {
     if (!$event->livestreamEnabled) return '';
 
+    // Set pre time
+    $preTime = (clone $event->startTime)->modify(sprintf('-%d day', CONFIG['wordpress']['days_to_show_button_in_advance']));
+    // Check if parallel pre times aren't allowed
+    if (!CONFIG['wordpress']['allow_parallel_event_pre_times']) {
+      foreach ($eventList as $otherEvent) {
+        if ($event == $otherEvent) continue;
+        $otherEventPreTime = (clone $otherEvent->startTime)->modify(sprintf('-%d day', CONFIG['wordpress']['days_to_show_button_in_advance']));
+        // Check if the two events collide
+        if ($otherEventPreTime < $preTime && $preTime < $otherEvent->endTime) {
+          $preTime = $otherEvent->endTime;
+        }
+      }
+    }
     // Gather all data
     $keysToReplace = array(
-      'pre_time' => (clone $event->startTime)->modify(sprintf('-%d day', CONFIG['wordpress']['days_to_show_button_in_advance']))->format(DateTime::ATOM),
+      'pre_time' => $preTime->format(DateTime::ATOM),
       'start_time' => $event->startTime->format(DateTime::ATOM),
       'end_time' => $event->endTime->format(DateTime::ATOM),
       'video_link' => $event->link->url,
@@ -86,13 +100,19 @@ class WordPress {
    * @param array[Event] $eventList A list of all current events
    */
    public function updateEventEntries(array $eventList) {
+     // Order events in descending order by end time
+     $endTimeEventList = $eventList;
+     usort($endTimeEventList, function (Event $a, Event $b) { return -($a->endTime <=> $b->endTime); });
+     // Order events in ascending order by start time
+     usort($eventList, function (Event $a, Event $b) { return ($a->startTime <=> $b->startTime); });
+
      // Render all templates
      $renderedTemplates = array();
      foreach (CONFIG['wordpress']['content_templates'] as $templateKey => $templateContent) {
        $renderedTemplates[$templateKey] = '';
        // Add every event
        foreach ($eventList as $event) {
-         $renderedTemplates[$templateKey] .= $this->renderEventContentTemplate($event, $templateContent);
+         $renderedTemplates[$templateKey] .= $this->renderEventContentTemplate($event, $templateContent, $eventList);
        }
      }
 

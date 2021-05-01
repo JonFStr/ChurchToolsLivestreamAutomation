@@ -154,14 +154,12 @@ class Event implements JsonSerializable {
    * @param Google_Service_YouTube_LiveBroadcast $broadcast The broadcast to check
    *
    * @return bool Whether the broadcast belongs to this event
-   *
-   * @TODO Implement
    */
   public function isEventBroadcast(Google_Service_YouTube_LiveBroadcast $broadcast) {
-    # Check that a broadcast exists for this event
+    // Check that a broadcast exists for this event
     $videoId = $this->link->getYoutubeVideoId();
     if (empty($videoId)) return false;
-    # Compare the two video ids
+    // Compare the two video ids
     return $videoId === $broadcast['id'];
   }
 
@@ -174,8 +172,8 @@ class Event implements JsonSerializable {
     // Gather all title information
     $broadcastTitle = CONFIG['youtube']['title'];
     $title = $this->title;
-    $subject = isset($this->subject) ? '"' . $this->subject . '"' : '';
-    $speaker = isset($this->speaker) ? ' mit ' . $this->speaker : '';
+    $subject = !empty($this->subject) ? '"' . $this->subject . '"' : '';
+    $speaker = !empty($this->speaker) ? ' mit ' . $this->speaker : '';
     $date = ' am ' . $this->startTime->format('d.m.Y');
     // Build title
     $titleReplacements = array('title', 'subject', 'speaker', 'date');
@@ -202,8 +200,6 @@ class Event implements JsonSerializable {
    * Create a new broadcast for this event
    *
    * @param YouTube $youtube The YouTube API interface
-   *
-   * @TODO Rework title creation
    */
   public function createYouTubeBroadcast(YouTube $youtube) {
     // If a broadcast already exists, we are done here
