@@ -116,7 +116,7 @@ define('CONFIG', array(
     // The user to make all API calls as
     'user' => 'admin',
     // The users application password (from the Application Password plugin: https://wordpress.org/plugins/application-passwords/)
-    'application_password' => 'otTW 8fk8 Dg4c yRhT RcuN Hkfp',
+    'application_password' => '',
     /**
      * How the WordPress contents should be built; the following placeholders are available:
      *
