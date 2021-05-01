@@ -19,7 +19,9 @@ $churchtools = new ChurchTools(CONFIG['churchtools']['url'], CONFIG['churchtools
 // Setup YouTube API
 $youtube = new YouTube();
 // Setup WordPress API
-$wordpress = new WordPress();
+if (CONFIG['wordpress']['enabled']) {
+  $wordpress = new WordPress();
+}
 
 // Everything is ready
 if ($youtube->isValid()) {
@@ -56,16 +58,20 @@ if ($youtube->isValid()) {
   $storedEventListHash = file_exists('storedEventListHash') ? file_get_contents('storedEventListHash') : '';
   // Check if any event has changed
   if (FORCE_RENEW || $eventListHash !== $storedEventListHash) {
-    $wordpressSnippet = '';
     // Update all event broadcasts
     foreach ($eventList as $event) {
       $event->updateYouTubeBroadcast();
-      $wordpressSnippet .= $wordpress->generateEventLivestreamButtonShortcode($event);
     }
-    // TODO: send email with newest shortcode
-    echo htmlspecialchars($wordpressSnippet);
+
+    if (CONFIG['wordpress']['enabled']) {
+      $wordpress->updateEventEntries($eventList);
+    }
     // Store new information for the next request
     file_put_contents('storedEventListHash', $eventListHash);
+    echo 'UPDATED';
+  }
+  else {
+    echo 'skipped';
   }
 }
 

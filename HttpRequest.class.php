@@ -6,6 +6,25 @@ class HttpRequest {
    * All cookies saved during this session
    */
   private array $savedCookies = array();
+  /**
+   * A user to authenticate with
+   */
+  private string $user = '';
+  /**
+   * A password to authenticate with
+   */
+  private string $password = '';
+
+  /**
+   * Setup authentication
+   *
+   * @param string $username A user to authenticate with
+   * @param string $password The password coresponding to the username
+   */
+  function __construct(string $username='', string $password='') {
+    $this->user = $username;
+    $this->password = $password;
+  }
 
   /**
    * Send request to $url with $data and get raw data in return
@@ -17,18 +36,39 @@ class HttpRequest {
    * @return array The response
    */
   public function getRaw(string $url, array $data=array(), string $method='POST') {
-    $CSRF = '';
+    $header = '';
+    // Set csrf header
     if ('' !== $this->csrfToken) {
-      $CSRF = "CSRF-Token: " . $this->csrfToken . "\r\n";
+      $header .= "CSRF-Token: " . $this->csrfToken . "\r\n";
     }
 
+    // Set authentication header
+    if (!empty($this->user)) {
+      $header .= "Authorization: Basic " . base64_encode("$this->user:$this->password") . "\r\n";
+    }
+
+    // Set cookies
+    $header .= "Cookie: " . $this->getCookies() . "\r\n";
+
+    // Set content type
+    $header .= "Content-type: application/x-www-form-urlencoded\r\n";
+
+    // Set context
     $options = array(
       'http' => array(
-        'header'  => $CSRF . "Cookie: " . $this->getCookies() . "\r\nContent-type: application/x-www-form-urlencoded\r\n",
+        'header'  => $header,
         'method'  => $method,
-        'content' => http_build_query($data),
       ),
     );
+
+    // Set data
+    if ('GET' !== $method) {
+      $options['http']['content'] = http_build_query($data);
+    }
+    else {
+      $url .= (strpos($url, '?') !== false) ? '&' : '?';
+      $url .= http_build_query($data);
+    }
 
     $context = stream_context_create($options);
     $result = file_get_contents($url, false, $context);

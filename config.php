@@ -93,10 +93,32 @@ define('CONFIG', array(
    * General WordPress settings
    */
   'wordpress' => array(
+    // Enable automatic WordPress page editing
+    'enabled' => true,
     // How many days ahead of the events start should this be shown (determines %pre_time% placeholder for the shortcode)
     'days_to_show_button_in_advance' => 6,
     /**
-     * How the WordPress shortcode should be built; the following placeholders are available:
+     * Which pages to plase the generated content in
+     * Use the pages id as key and the key from 'content_templates' as value:
+     * 'page_id' => 'content_template_name'
+     */
+    'pages' => array(
+      6 => 'play_button',
+    ),
+    /**
+     * Which tag to put the content in
+     * e.g. 'ct-livestreams', then the opening tag should be: '<!-- ct-livestreams --><!-- /ct-livestreams -->'
+     * The content will be placed between these tags
+     */
+    'content_tag' => 'ct-livestreams',
+    // Url to the WordPress instance
+    'url' => 'https://YOUR-WORDPRESS-INSTACE.COM/',
+    // The user to make all API calls as
+    'user' => 'admin',
+    // The users application password (from the Application Password plugin: https://wordpress.org/plugins/application-passwords/)
+    'application_password' => 'otTW 8fk8 Dg4c yRhT RcuN Hkfp',
+    /**
+     * How the WordPress contents should be built; the following placeholders are available:
      *
      * %pre_time% - Atom timestamp of the time to start showing the shortcode (e.g.: 2010-04-05T15:52:01+02:00)
      * %end_time% - Atom timestamp of the scheduled events start (e.g.: 2010-04-11T15:52:01+02:00)
@@ -105,7 +127,8 @@ define('CONFIG', array(
      * %title% - The ChurchTools events title
      * %datetime% - The ChurchTools events start date and time
      */
-    'livestream_button_shortcode' => '[timed-content-server show="%pre_time%" hide="%start_time%"]
+     'content_templates' => array(
+       'play_button' => '[timed-content-server show="%pre_time%" hide="%start_time%"]
 
 <div class="wp-block-getwid-video-popup"><a class="wp-block-getwid-video-popup__link" href="%video_link%"><div class="wp-block-getwid-video-popup__wrapper"><div class="wp-block-getwid-video-popup__button is-style-default"><div class="wp-block-getwid-video-popup__icon"><i class="fas fa-play"></i></div><div class="wp-block-getwid-video-popup__button-caption"><p class="wp-block-getwid-video-popup__title">%title% - Live-Stream - %datetime%</p></div></div></div></a></div>
 
@@ -117,5 +140,6 @@ define('CONFIG', array(
 <div class="wp-block-getwid-video-popup"><a class="wp-block-getwid-video-popup__link" href="%video_link%"><div class="wp-block-getwid-video-popup__wrapper"><div class="wp-block-getwid-video-popup__button is-style-default has-animation-pulse"><div class="wp-block-getwid-video-popup__icon"><i class="fas fa-play"></i></div><div class="wp-block-getwid-video-popup__button-caption"><p class="wp-block-getwid-video-popup__title">Jetzt live - %title%</p></div></div></div></a></div>
 
 [/timed-content-server]',
+    ),
   ),
 ));
