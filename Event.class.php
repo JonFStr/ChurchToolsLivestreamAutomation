@@ -1,47 +1,47 @@
 <?php
 
-class Event {
+class Event implements JsonSerializable {
   /**
    * The events id
    */
-  public static int $id;
+  public int $id;
   /**
    * The id of the category this event is in
    */
-  public static int $categoryId;
+  public int $categoryId;
   /**
    * Time when the event starts
    */
-  public static DateTimeInterface $startTime;
+  public DateTimeInterface $startTime;
   /**
    * Time when the event ends
    */
-  public static DateTimeInterface $endTime;
+  public DateTimeInterface $endTime;
   /**
    * The events title
    */
-  public static string $title;
+  public string $title = '';
   /**
    * A description of the event
    */
-  public static string $description;
+  public string $description = '';
   /**
    * Whether or not livestreaming is enabled for this event
    */
-  public static bool $livestreamEnabled = false;
+  public bool $livestreamEnabled = false;
   /**
    * The speaches subject
    */
-  public static string $subject;
+  public string $subject = '';
   /**
    * The speakers name
    * @TODO Allow multiple speakers
    */
-  public static string $speaker;
+  public string $speaker = '';
   /**
    * The events link
    */
-  public static Link $link;
+  public Link $link;
   /**
    * This events broadcast
    */
@@ -57,7 +57,7 @@ class Event {
   /**
    * The cc cal id (I guess some database id)
    */
-  public static int $ccCalId;
+  public int $ccCalId;
   /**
    * Wether this events broadcast was just created in this session
    */
@@ -90,7 +90,7 @@ class Event {
     $this->startTime = new DateTimeImmutable($data['startdate']);
     $this->endTime = new DateTimeImmutable($data['enddate']);
     $this->title = $data['bezeichnung'];
-    $this->description = $data['special'];
+    $this->description = null === $data['special'] ? '' : $data['special'];
     $this->link = isset($data['link']) ? new Link($data['link']) : new Link();
 
     // Extract info from facts
@@ -118,7 +118,7 @@ class Event {
         switch ($service['service_id']) {
           // Speaker
           case $serviceTypeMatch['speaker']:
-            $this->speaker = $service['name'];
+            $this->speaker = null === $service['name'] ? '' : $service['name'];
             break;
         }
       }
@@ -294,5 +294,27 @@ class Event {
       $youTubeDefaultThumbnail = FileConnection::fromExternalUrl(CONFIG['youtube']['thumbnail']);
     }
     $this->thumbnail = $youTubeDefaultThumbnail;
+  }
+
+  /**
+   * Collect data for json
+   * @return array The objects data for serialization
+   */
+  public function jsonSerialize() {
+    return array(
+      'id' => $this->id,
+      'categoryId' => $this->categoryId,
+      'startTime' => $this->startTime,
+      'endTime' => $this->endTime,
+      'title' => $this->title,
+      'description' => $this->description,
+      'livestreamEnabled' => $this->livestreamEnabled,
+      'subject' => $this->subject,
+      'speaker' => $this->speaker,
+      'link' => $this->link,
+      'ccCalId' => $this->ccCalId,
+      'privacyStatus' => $this->privacyStatus,
+      'thumbnail' => $this->thumbnail,
+    );
   }
 }

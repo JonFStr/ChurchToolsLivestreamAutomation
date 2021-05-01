@@ -1,7 +1,7 @@
 <?php
 
 // TODO: Implement local file
-class FileConnection {
+class FileConnection implements JsonSerializable {
   /**
    * Available file connections
    */
@@ -146,5 +146,13 @@ class FileConnection {
    */
   public function getName() {
     return $this->name;
+  }
+
+  /**
+   * Collect data for json
+   * @return Link The files link
+   */
+  public function jsonSerialize() {
+    return $this->getDownloadLink();
   }
 }

@@ -16,7 +16,7 @@ class WordPressPage {
   /**
    * Wether the page is valid
    */
-  private bool $valid = true;
+  private bool $valid = false;
   /**
    * Content template opening tag
    */
@@ -74,8 +74,8 @@ class WordPressPage {
     }
 
     // Check if all open tags closed
-    if ($tagOpen) {
-      $this->valid = false;
+    if (!$tagOpen) {
+      $this->valid = true;
     }
   }
 

@@ -1,14 +1,14 @@
 <?php
 
-class Link {
+class Link implements JsonSerializable {
   /**
    * Wether the link is valid
    */
-  public static bool $valid = false;
+  public bool $valid = false;
   /**
    * The links url
    */
-  public static string $url;
+  public string $url;
   /**
    * A videos id this link is pointing to
    */
@@ -59,5 +59,13 @@ class Link {
     # Valid youtube video link
     $this->videoId = $match['video_id'];
     return true;
+  }
+
+  /**
+   * Collect data for json
+   * @return string This links url
+   */
+  public function jsonSerialize() {
+    return $this->url;
   }
 }

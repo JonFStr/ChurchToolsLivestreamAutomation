@@ -1,6 +1,6 @@
 <?php
 
-final class YouTubePrivacyStatus {
+final class YouTubePrivacyStatus implements JsonSerializable {
   const PUBLIC = 'public';
   const UNLISTED = 'unlisted';
   const PRIVATE = 'private';
@@ -34,6 +34,14 @@ final class YouTubePrivacyStatus {
    * @return string The status
    */
   public function status() {
+    return $this->status;
+  }
+
+  /**
+   * Collect data for json
+   * @return string The privacy status as string
+   */
+  public function jsonSerialize() {
     return $this->status;
   }
 }
