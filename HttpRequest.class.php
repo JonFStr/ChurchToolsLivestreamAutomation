@@ -14,6 +14,10 @@ class HttpRequest {
    * A password to authenticate with
    */
   private string $password = '';
+  /**
+   * CSRF Token
+   */
+  private string $csrfToken = '';
 
   /**
    * Setup authentication

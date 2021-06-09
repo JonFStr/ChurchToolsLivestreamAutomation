@@ -154,7 +154,7 @@ class YouTube {
     if (null === $broadcastContentDetails) $broadcastContentDetails = new Google_Service_YouTube_LiveBroadcastContentDetails();
     $broadcastContentDetails->setEnableClosedCaptions(false);
     $broadcastContentDetails->setEnableEmbed(true);
-    $broadcastContentDetails->setLatencyPreference('ultraLow');
+    $broadcastContentDetails->setLatencyPreference('low');
     $broadcastContentDetails->setRecordFromStart(true);
     $broadcast->setContentDetails($broadcastContentDetails);
 

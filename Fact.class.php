@@ -4,11 +4,11 @@ class Fact {
   /**
    * Title of the fact
    */
-  public static string $title;
+  public string $title = '';
   /**
    * Value stored for this fact
    */
-  public static string $value;
+  public string $value = '';
 
   /**
    * Load all fact data
@@ -17,8 +17,13 @@ class Fact {
    * @param array $generalFactConfig The general config for all facts
    */
   function __construct(array $dataArray=array(), array $generalFactConfig=array()) {
-    $factConfig = $generalFactConfig[$dataArray['fact_id']];
-    $this->title = $factConfig['bezeichnung'];
-    $this->value = $dataArray['value'];
+    if (isset($dataArray['fact_id'])) {
+      $factConfig = $generalFactConfig[$dataArray['fact_id']];
+      $this->title = $factConfig['bezeichnung'];
+    }
+
+    if (isset($dataArray['value'])) {
+      $this->value = $dataArray['value'];
+    }
   }
 }

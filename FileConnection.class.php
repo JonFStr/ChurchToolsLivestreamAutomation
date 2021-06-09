@@ -12,7 +12,7 @@ class FileConnection implements JsonSerializable {
   /**
    * This files object connection
    */
-  protected static string $connection;
+  protected string $connection;
   /**
    * ChurchTools API connection
    */

@@ -50,7 +50,7 @@ class WordPress {
       'end_time' => $event->endTime->format(DateTime::ATOM),
       'video_link' => $event->link->url,
       'title' => $event->title,
-      'datetime' => $event->startTime->format('d.m. h:i'),
+      'datetime' => $event->startTime->format('d.m. H:i'),
     );
 
     // Generate the content

@@ -4,11 +4,11 @@ class ServiceType {
   /**
    * Id of the service type
    */
-  public static string $id;
+  public $id;
   /**
    * Title of the service type
    */
-  public static string $title;
+  public $title;
 
   /**
    * Load all type data
