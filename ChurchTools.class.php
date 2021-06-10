@@ -192,9 +192,7 @@ class ChurchTools {
     );
     // Add parameters
     foreach ($paramsToUpdate as $key => $value) {
-      if (isset($event->$key)) {
-        $requestData[$key] = $value;
-      }
+      $requestData[$key] = $value;
     }
 
     $response = $this->sendRequest('ChurchService', 'updateEvent', $requestData);
