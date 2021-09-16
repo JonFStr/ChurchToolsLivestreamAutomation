@@ -135,7 +135,7 @@ class WordPress {
      );
 
      $pageData = $this->httpRequests->getJson($this->instanceUrl->url . 'wp-json/wp/v2/pages/' . (string)$pageId, $data, 'GET');
-     if (isset($pageData['status']) && 'failure' === $pageData['success']) {
+     if (isset($pageData['status']) && 'failure' === $pageData['status']) {
        return false;
      }
      $page = new WordPressPage($pageData);
