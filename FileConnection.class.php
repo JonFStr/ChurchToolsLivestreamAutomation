@@ -77,7 +77,7 @@ class FileConnection implements JsonSerializable {
         return new Link($this->location);
       case FileConnection::CONNECTIONS['churchtools']:
         // Check the file was already downloaded
-        if (!file_exists($this->location->url)) {
+        if (!file_exists($this->location)) {
           $this->saveChurchToolsFileLocaly();
         }
         return new Link(CONFIG['url'] . $this->location);
