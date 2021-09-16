@@ -70,6 +70,10 @@ class Event implements JsonSerializable {
    * The events custom thumbnail
    */
   protected FileConnection $thumbnail;
+  /**
+   * The events raw data
+   */
+  private array $rawData;
 
   /**
    * Load all event data
@@ -83,6 +87,18 @@ class Event implements JsonSerializable {
    */
   function __construct(array $data, ChurchTools $churchToolsApi, array $factList=array(), array $serviceTypeList=array()) {
     $this->churchToolsApi = $churchToolsApi;
+    $this->loadData($data, $factList, $serviceTypeList);
+  }
+
+  /**
+   * (Re)load this events data
+   *
+   * @param array $data The events raw data
+   * @param array $factList All facts this event has
+   * @param array $serviceTypeList All available service types
+   */
+  public function loadData(array $data, array $factList=array(), array $serviceTypeList=array()) {
+    $this->rawData = $data;
     // Get general info
     $this->id = (int)$data['id'];
     $this->categoryId = (int)$data['category_id'];
@@ -235,7 +251,100 @@ class Event implements JsonSerializable {
    * Update the events broadcast link
    */
   protected function update() {
+    // Make sure this is a single event and not part of a series
+    if (!$this->convertToSingleEvent()) {
+      echo 'Failed to save event "' . $this->title . '" starting at ' . $this->startTime->format("Y-m-d h:i") . '<br>';
+      return;
+    }
+
+    // Now update the link
     $this->churchToolsApi->updateEventParameters($this, array('link' => $this->link->url));
+  }
+
+  /**
+   * Make sure this is a single event and not part of a series
+   */
+  protected function convertToSingleEvent() {
+    // It is already a single event, so nothing to do here
+    if (0 == $this->rawData['repeat_id']) {
+      return true;
+    }
+
+    $eventCalData = $this->churchToolsApi->eventGetCalendarData($this);
+
+    /** Get original event **/
+    $requestData = array(
+      'originEvent' => $eventCalData,
+      'splitDate' => $this->startTime->format('Y-m-d h:i'),
+      'untilEnd_yn' => 0,
+      'browsertabId' => 1
+    );
+
+    /** Get new event **/
+    $requestData['newEvent'] = $eventCalData;
+    $requestData['newEvent']['old_id'] = $requestData['newEvent']['id'];
+    unset($requestData['newEvent']['id'], $requestData['newEvent']['exceptions'], $requestData['newEvent']['additions']);
+    $requestData['newEvent']['repeat_id'] = 0;
+    $requestData['newEvent']['startdate'] = $this->startTime->format('Y-m-d h:i:s');
+    $requestData['newEvent']['enddate'] = $this->endTime->format('Y-m-d h:i:s');
+    $requestData['newEvent']['csevents'] = array(
+      $this->id => $eventCalData['csevents'][$this->id],
+    );
+    $requestData['newEvent']['csevents'][$this->id]['mark'] = true;
+    $requestData['newEvent']['informCreator'] = false;
+    $requestData['newEvent']['informMe'] = false;
+
+    /** Get past event **/
+    $requestData['pastEvent'] = $eventCalData;
+    unset($requestData['pastEvent']['csevents'][$this->id]);
+    // Set new exceptionid
+    if (!isset($requestData['pastEvent']['exceptions'])) {
+      $requestData['pastEvent']['exceptions'] = array();
+    }
+    $requestData['pastEvent']['exceptionids'] = 0;
+    foreach ($requestData['pastEvent']['exceptions'] as $id => $exception) {
+      if ($id < $requestData['pastEvent']['exceptionids']) {
+        $requestData['pastEvent']['exceptionids'] = $id;
+      }
+    }
+    $requestData['pastEvent']['exceptionids']--;
+    // Set new exception
+    $requestData['pastEvent']['exceptions'][$requestData['pastEvent']['exceptionids']] = array(
+      'id' => $requestData['pastEvent']['exceptionids'],
+      'except_date_start' => $this->startTime->format('Y-m-d'),
+      'except_date_end' => $this->startTime->format('Y-m-d')
+    );
+
+    // Get existing conflicts
+    $response = $this->churchToolsApi->sendRequest('ChurchCal', 'getEventChangeImpact', $requestData);
+
+    // Make sure no conflicts exist
+    if ('success' == $response['status']) {
+      $dataTypes = array('cal', 'services', 'bookings');
+      foreach ($dataTypes as $type) {
+        if (!isset($response['data'][$type])) {
+          continue;
+        }
+        foreach ($response['data'][$type] as $changeElement) {
+          if ('new' != $changeElement['status']) {
+            // We found a conflict
+            return false;
+          }
+        }
+      }
+
+      // Split the event from the series
+      $response = $this->churchToolsApi->sendRequest('ChurchCal', 'saveSplittedEvent', $requestData);
+
+    if ('success' == $response['status'] && isset($response['data']['id'])) {
+        // Reload event data - the link is loaded at runtime and will be overwritten by reloading the event data
+        $link = $this->link;
+        $this->churchToolsApi->reloadEventData($this);
+        $this->link = $link;
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -312,5 +421,13 @@ class Event implements JsonSerializable {
       'privacyStatus' => $this->privacyStatus,
       'thumbnail' => $this->thumbnail,
     );
+  }
+
+  /**
+   * Get the events raw data
+   * @return array The events raw data
+   */
+  public function getRaw() {
+    return $this->rawData;
   }
 }

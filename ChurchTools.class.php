@@ -49,7 +49,7 @@ class ChurchTools {
    * @return array|false The parsed json response or false on failure
    * @TODO: Implement logging
    */
-  protected function sendRequest(string $module, string $function, array $params=array()) {
+  public function sendRequest(string $module, string $function, array $params=array()) {
     $requestUrl = $this->instanceUrl . '?q=' . strtolower($module) . '/ajax';
     $params['func'] = strtolower($function);
     $response = $this->httpRequests->getJson($requestUrl, $params);
@@ -113,6 +113,7 @@ class ChurchTools {
   public function getUpcomingEvents(DateTimeInterface $latestStart) {
     // Collect all data
     $response = $this->sendRequest('ChurchService', 'getAllEventData');
+
     $eventDataList = $response['data'];
     $factList = $this->getAllFacts();
     $serviceTypes = $this->getAllServiceTypes();
@@ -132,6 +133,28 @@ class ChurchTools {
     }
 
     return $eventList;
+  }
+
+  /**
+   * Reload an events data
+   *
+   * @param Event $event the event to reload
+   */
+  public function reloadEventData(Event $event) {
+    // Get event data
+    $response = $this->sendRequest('ChurchService', 'getAllEventData', array('id' => $event->id));
+    $eventData = $response['data'][$event->id];
+    $eventDataList = $response['data'];
+
+    // Get facts
+    $factList = $this->getAllFacts();
+    $eventFactList = isset($factList[$event->id]) ? $factList[$event->id] : array();
+
+    // Get service types
+    $serviceTypes = $this->getAllServiceTypes();
+
+    // Load data into event
+    $event->loadData($eventData, $eventFactList, $serviceTypes);
   }
 
   /**
@@ -219,6 +242,24 @@ class ChurchTools {
     }
 
     return $fileList;
+  }
+
+  /**
+   * Get an events calender data
+   *
+   * @param Event $event The event to get the calendar data for
+   *
+   * @return array The events calendar data
+   */
+  public function eventGetCalendarData(Event $event) {
+    $response = $this->sendRequest('ChurchCal', 'getCalPerCategory', array('category_ids' => array($event->categoryId)));
+
+    if (isset($response['data'][$event->categoryId][$event->ccCalId])) {
+      return $response['data'][$event->categoryId][$event->ccCalId];
+    }
+    else {
+      return array();
+    }
   }
 
   /**
