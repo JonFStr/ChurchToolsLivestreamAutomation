@@ -253,7 +253,7 @@ class Event implements JsonSerializable {
   protected function update() {
     // Make sure this is a single event and not part of a series
     if (!$this->convertToSingleEvent()) {
-      echo 'Failed to save event "' . $this->title . '" starting at ' . $this->startTime->format("Y-m-d h:i") . '<br>';
+      echo 'Failed to save event "' . $this->title . '" starting at ' . $this->startTime->format("Y-m-d H:i") . '<br>';
       return;
     }
 
@@ -275,7 +275,7 @@ class Event implements JsonSerializable {
     /** Get original event **/
     $requestData = array(
       'originEvent' => $eventCalData,
-      'splitDate' => $this->startTime->format('Y-m-d h:i'),
+      'splitDate' => $this->startTime->format('Y-m-d H:i'),
       'untilEnd_yn' => 0,
       'browsertabId' => 1
     );
@@ -285,8 +285,8 @@ class Event implements JsonSerializable {
     $requestData['newEvent']['old_id'] = $requestData['newEvent']['id'];
     unset($requestData['newEvent']['id'], $requestData['newEvent']['exceptions'], $requestData['newEvent']['additions']);
     $requestData['newEvent']['repeat_id'] = 0;
-    $requestData['newEvent']['startdate'] = $this->startTime->format('Y-m-d h:i:s');
-    $requestData['newEvent']['enddate'] = $this->endTime->format('Y-m-d h:i:s');
+    $requestData['newEvent']['startdate'] = $this->startTime->format('Y-m-d H:i:s');
+    $requestData['newEvent']['enddate'] = $this->endTime->format('Y-m-d H:i:s');
     $requestData['newEvent']['csevents'] = array(
       $this->id => $eventCalData['csevents'][$this->id],
     );
