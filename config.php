@@ -18,6 +18,17 @@ define('CONFIG', array(
       'value' => 'Ja',
     ),
     /**
+     * ChurchTools fact, that determines if the livestream of an event should be visible on the homepage
+     */
+    'livestream_on_homepage' => array(
+      // Name of the ChurchTools fact
+      'title' => 'Livestream auf der Homepage',
+      // Value that fact should have
+      'value' => 'Ja',
+      // Default value
+      'default' => true,
+    ),
+    /**
      * ChurchTools fact, that determines the default YouTube visibility of an events livestream
      * The default value for this can be set under "youtube > visibility"
      */
