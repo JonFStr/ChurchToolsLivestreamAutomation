@@ -112,6 +112,9 @@ class WordPress {
        $renderedTemplates[$templateKey] = '';
        // Add every event
        foreach ($eventList as $event) {
+         if (!$event->livestreamOnHomepage) {
+           continue;
+         }
          $renderedTemplates[$templateKey] .= $this->renderEventContentTemplate($event, $templateContent, $eventList);
        }
      }

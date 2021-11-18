@@ -28,7 +28,11 @@ class Event implements JsonSerializable {
   /**
    * Whether or not livestreaming is enabled for this event
    */
-  public bool $livestreamEnabled = false;
+  public bool $livestreamEnabled = CONFIG['events']['livestream']['default'];
+  /**
+   * Whether or not the livestream of this event should be displayed on the homepage
+   */
+  public bool $livestreamOnHomepage = CONFIG['events']['livestream_on_homepage']['default'];
   /**
    * The speaches subject
    */
@@ -120,6 +124,10 @@ class Event implements JsonSerializable {
         // Set livestream visibility
         case CONFIG['events']['livestream_visibility']['title']:
           $this->setPrivacyStatus($fact);
+          break;
+        // Set livestream homepage visibility
+        case CONFIG['events']['livestream_on_homepage']['title']:
+          $this->livestreamOnHomepage = $fact->value === CONFIG['events']['livestream_on_homepage']['value'];
           break;
       }
     }
@@ -414,6 +422,7 @@ class Event implements JsonSerializable {
       'title' => $this->title,
       'description' => $this->description,
       'livestreamEnabled' => $this->livestreamEnabled,
+      'livestreamOnHomepage' => $this->livestreamOnHomepage,
       'subject' => $this->subject,
       'speaker' => $this->speaker,
       'link' => $this->link,
