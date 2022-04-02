@@ -30,6 +30,10 @@ class Event implements JsonSerializable {
    */
   public bool $livestreamEnabled = CONFIG['events']['livestream']['default'];
   /**
+   * Whether or not this events existing or non existing boradcast should be ignored
+   */
+  private bool $livestreamIgnored = false;
+  /**
    * Whether or not the livestream of this event should be displayed on the homepage
    */
   public bool $livestreamOnHomepage = CONFIG['events']['livestream_on_homepage']['default'];
@@ -120,6 +124,8 @@ class Event implements JsonSerializable {
         // Wether livestreaming is enabled
         case CONFIG['events']['livestream']['title']:
           $this->livestreamEnabled = $fact->value === CONFIG['events']['livestream']['value'];
+          // Check if the livestream should be ignored
+          $this->livestreamIgnored = $fact->value === CONFIG['events']['livestream']['ignore_value'];
           break;
         // Set livestream visibility
         case CONFIG['events']['livestream_visibility']['title']:
@@ -226,6 +232,10 @@ class Event implements JsonSerializable {
    * @param YouTube $youtube The YouTube API interface
    */
   public function createYouTubeBroadcast(YouTube $youtube) {
+    // Skip if broadcasts should be ignored
+    if ($this->livestreamIgnored) {
+      return;
+    }
     // If a broadcast already exists, we are done here
     if (isset($this->broadcast)) return;
     $this->broadcastJustCreated = true;
@@ -244,6 +254,10 @@ class Event implements JsonSerializable {
    * Delete the broadcast for this event
    */
    public function deleteBroadcast() {
+     // Skip if broadcasts should be ignored
+     if ($this->livestreamIgnored) {
+       return;
+     }
     // If no broadcast exists, we are done here
     if (!isset($this->broadcast)) return;
     $this->broadcastJustCreated = false;
@@ -359,6 +373,10 @@ class Event implements JsonSerializable {
    * Update the events YouTube Broadcast
    */
   public function updateYouTubeBroadcast() {
+    // Skip if broadcasts should be ignored
+    if ($this->livestreamIgnored) {
+      return;
+    }
     // Skip if no broadcast exists or was just created and doesn't need to be updated
     if (!isset($this->broadcast, $this->youtube) || $this->broadcastJustCreated) return;
 

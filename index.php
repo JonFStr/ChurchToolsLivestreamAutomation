@@ -25,7 +25,7 @@ if (CONFIG['wordpress']['enabled']) {
 
 // Everything is ready
 if ($youtube->isValid()) {
-  // Get all events that are 6 days into the future
+  // Get all events that are x days into the future
   $datetime = new DateTime(sprintf('+%d day', CONFIG['events']['days_to_load_in_advance']));
   $eventList = $churchtools->getUpcomingEvents($datetime);
   // Get all scheduled boradcasts

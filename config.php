@@ -16,6 +16,10 @@ define('CONFIG', array(
       'title' => 'Livestream',
       // Value that fact should have
       'value' => 'Ja',
+      // Default value
+      'default' => false,
+      // Value that fact should have if any attached livestream should be ignored
+      'ignore_value' => 'Ingorieren',
     ),
     /**
      * ChurchTools fact, that determines if the livestream of an event should be visible on the homepage
@@ -108,6 +112,8 @@ define('CONFIG', array(
     'enabled' => true,
     // How many days ahead of the events start should this be shown (determines %pre_time% placeholder for the shortcode)
     'days_to_show_button_in_advance' => 6,
+    // Allow a pre event time in the content templates to overlap with a running event. Otherwise the second events pre times always start after the first event has ended
+    'allow_parallel_event_pre_times' => true,
     /**
      * Which pages to plase the generated content in
      * Use the pages id as key and the key from 'content_templates' as value:
