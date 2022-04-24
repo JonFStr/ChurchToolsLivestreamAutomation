@@ -30,7 +30,7 @@ class Event implements JsonSerializable {
    */
   public bool $livestreamEnabled = CONFIG['events']['livestream']['default'];
   /**
-   * Whether or not this events existing or non existing boradcast should be ignored
+   * Whether or not this events existing boradcast should be ignored
    */
   private bool $livestreamIgnored = false;
   /**
@@ -232,10 +232,6 @@ class Event implements JsonSerializable {
    * @param YouTube $youtube The YouTube API interface
    */
   public function createYouTubeBroadcast(YouTube $youtube) {
-    // Skip if broadcasts should be ignored
-    if ($this->livestreamIgnored) {
-      return;
-    }
     // If a broadcast already exists, we are done here
     if (isset($this->broadcast)) return;
     $this->broadcastJustCreated = true;
@@ -456,5 +452,13 @@ class Event implements JsonSerializable {
    */
   public function getRaw() {
     return $this->rawData;
+  }
+
+  /**
+   * Check if this event has an attached livestream
+   * @return bool
+   */
+  public function hasAttachedBroadcast() {
+    return isset($this->broadcast, $this->youtube);
   }
 }

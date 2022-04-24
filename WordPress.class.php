@@ -28,7 +28,7 @@ class WordPress {
    * @return string Generated shortcode
    */
  protected static function renderEventContentTemplate(Event $event, string $template, array $eventList) {
-    if (!$event->livestreamEnabled) return '';
+    if (!$event->hasAttachedBroadcast()) return '';
 
     // Set pre time
     $preTime = (clone $event->startTime)->modify(sprintf('-%d day', CONFIG['wordpress']['days_to_show_button_in_advance']));
@@ -115,6 +115,7 @@ class WordPress {
          if (!$event->livestreamOnHomepage) {
            continue;
          }
+
          $renderedTemplates[$templateKey] .= $this->renderEventContentTemplate($event, $templateContent, $eventList);
        }
      }
