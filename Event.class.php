@@ -106,7 +106,7 @@ class Event implements JsonSerializable {
    * @param array $serviceTypeList All available service types
    */
   public function loadData(array $data, array $factList=array(), array $serviceTypeList=array()) {
-    $this->rawData = $data;
+    $this->rawData = $data; 
     // Get general info
     $this->id = (int)$data['id'];
     $this->categoryId = (int)$data['category_id'];
@@ -427,7 +427,7 @@ class Event implements JsonSerializable {
    * Collect data for json
    * @return array The objects data for serialization
    */
-  public function jsonSerialize() {
+  public function jsonSerialize(): array {
     return array(
       'id' => $this->id,
       'categoryId' => $this->categoryId,

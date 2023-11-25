@@ -19,7 +19,7 @@ class Link implements JsonSerializable {
    *
    * @param string $url The url this link represents
    */
-  function __construct(string $url) {
+  function __construct(string $url='') {
     # Sanitize url
     $url = filter_var($url, FILTER_SANITIZE_URL);
     # Validate the url
@@ -65,7 +65,7 @@ class Link implements JsonSerializable {
    * Collect data for json
    * @return string This links url
    */
-  public function jsonSerialize() {
+  public function jsonSerialize(): string {
     return $this->url;
   }
 }

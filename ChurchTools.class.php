@@ -55,7 +55,8 @@ class ChurchTools {
     $response = $this->httpRequests->getJson($requestUrl, $params);
 
     if (!isset($response['status']) || $response['status'] !== 'success') {
-      echo htmlspecialchars(var_export($response, true));exit;
+      var_export($params);
+      echo var_export($response, true);exit;
       return false;
     }
     else return $response;
@@ -119,19 +120,20 @@ class ChurchTools {
     $serviceTypes = $this->getAllServiceTypes();
     // Build the events
     $eventList = array();
-
+    $now = new DateTimeImmutable();
+    $i = 0;
 
     foreach($eventDataList as $eventId => $eventData) {
+      // Only keep upcoming events
+      if (new DateTimeImmutable($eventData['enddate']) < $now) continue;      
+      // Make sure the event isn't too far in the future
+      if ($latestStart < new DateTimeImmutable($eventData['startdate'])) continue;
+
       $eventFactList = isset($factList[$eventId]) ? $factList[$eventId] : array();
       $event = new Event($eventData, $this, $eventFactList, $serviceTypes);
 
-      // Only keep upcoming events
-      if ($event->endTime < new DateTimeImmutable()) continue;
-      // Make sure the event isn't too far in the future
-      if ($latestStart < $event->startTime) continue;
       $eventList[] = $event;
     }
-
     return $eventList;
   }
 
@@ -206,20 +208,24 @@ class ChurchTools {
    * @return bool If the update was a success
    */
   public function updateEventParameters(Event $event, array $paramsToUpdate) {
-    $requestData = array(
-      'event_id' => $event->id,
-      'category_id' => $event->categoryId,
-    	"id" => $event->ccCalId,
-    	"informCreator" => "false",
-    	"informMe" => "false"
+    $path = '/calendars/' . $event->categoryId . '/appointments/' . $event->ccCalId;
+    // Get current event data
+    $current_data = $this->sendRestRequest($path, 'GET')['data']['appointment'];
+    unset($current_data['calendar']);
+
+    
+    $current_data += array(
+      "informCreator" => "false",
+    	"informMe" => "false",
     );
+    
     // Add parameters
     foreach ($paramsToUpdate as $key => $value) {
-      $requestData[$key] = $value;
+      $current_data[$key] = $value;
     }
 
-    $response = $this->sendRequest('ChurchService', 'updateEvent', $requestData);
-    return isset($response['status']) && 'success' === $response['status'];
+    $response = $this->sendRestRequest($path, 'PUT', $current_data);
+    return isset($response['data']);
   }
 
   /**

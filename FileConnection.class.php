@@ -152,7 +152,7 @@ class FileConnection implements JsonSerializable {
    * Collect data for json
    * @return Link The files link
    */
-  public function jsonSerialize() {
+  public function jsonSerialize(): Link {
     return $this->getDownloadLink();
   }
 }

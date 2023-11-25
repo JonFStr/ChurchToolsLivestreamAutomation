@@ -41,7 +41,7 @@ final class YouTubePrivacyStatus implements JsonSerializable {
    * Collect data for json
    * @return string The privacy status as string
    */
-  public function jsonSerialize() {
+  public function jsonSerialize(): string {
     return $this->status;
   }
 }
