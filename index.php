@@ -28,8 +28,8 @@ if ($youtube->isValid()) {
   // Get all events that are x days into the future
   $datetime = new DateTime(sprintf('+%d day', CONFIG['events']['days_to_load_in_advance']));
   $eventList = $churchtools->getUpcomingEvents($datetime);
-  // Get all scheduled boradcasts
-  $broadcastList = $youtube->getAllScheduledBoradcasts();
+  // Get all scheduled and active boradcasts
+  $broadcastList = $youtube->getAllScheduledAndActiveBoradcasts();
 
   // Go through all events
   foreach ($eventList as $event) {

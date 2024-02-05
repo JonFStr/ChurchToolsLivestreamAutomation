@@ -137,6 +137,37 @@ class YouTube {
   }
 
   /**
+   * Get all active boradcasts
+   *
+   * @return array A list of all active boradcasts
+   */
+  public function getAllActiveBoradcasts() {
+    $queryParams = [
+        'broadcastStatus' => 'active',
+        'pageToken' => '',
+    ];
+    $broadcastList = array();
+
+    // Fetch all pages of scheduled broadcasts
+    do {
+      $response = $this->service->liveBroadcasts->listLiveBroadcasts($this::broadcastParts, $queryParams);
+      $broadcastList = array_merge($broadcastList, $response['items']);
+      $queryParams['pageToken'] = isset($response['nextPageToken']) ? $response['nextPageToken'] : '';
+    } while('' !== $queryParams['pageToken']);
+
+    return $broadcastList;
+  }
+
+  /**
+   * Get all active boradcasts
+   *
+   * @return array A list of all active boradcasts
+   */
+  public function getAllScheduledAndActiveBoradcasts() {
+    return array_merge($this->getAllScheduledBoradcasts(), $this->getAllActiveBoradcasts());
+  }
+
+  /**
    * Create a new broadcast
    *
    * @param Google_Service_YouTube_LiveBroadcast $broadcast The base broadcast to build on
