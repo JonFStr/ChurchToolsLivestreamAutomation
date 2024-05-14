@@ -48,6 +48,7 @@ if ($youtube->isValid()) {
     } else {
       // Create a new broadcast if this event doesn't have one already
       $event->createYouTubeBroadcast($youtube);
+      $event->checkCalendarLink();
     }
   }
 

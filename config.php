@@ -46,12 +46,27 @@ define('CONFIG', array(
         YouTubePrivacyStatus::PRIVATE => 'Privat',
       )
     ),
+    /**
+     * ChurchTools fact that determines whether the YouTube-Link should be included in the link field of the calendar entry.
+     *
+     * If disabled, the link will only be saved as attachment to the event
+     */
+    'livestream_in_calendar' => array(
+      // Name of the ChurchTools fact
+      'title' => 'Livestream im Kalender',
+      // Value that fact should have
+      'value' => 'Ja',
+      // Default value
+      'default' => false,
+    ),
     // The ChurchTools service that represents an events speaker
     'speaker' => 'Predigt',
     // How many days ahead of the events start should
     'days_to_load_in_advance' => 6,
     // The name of the image (without extension) attached to a ChurchTools event, that should be used as the YouTube livestreams thumbnail
-    'thumbnail_name' => 'YouTube',
+    'thumbnail_name' => 'YouTube-Thumbnail',
+    // The name of the Event-Attachment where the YT-Stream is linked
+    'stream_attachment_name' => 'YouTube-Stream',
   ),
   /**
    * General ChurchTools settings

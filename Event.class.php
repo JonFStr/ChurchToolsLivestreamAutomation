@@ -38,6 +38,10 @@ class Event implements JsonSerializable {
    */
   public bool $livestreamOnHomepage = CONFIG['events']['livestream_on_homepage']['default'];
   /**
+   * Whether the livestream link should be written to the `link`-field in the calendar entry
+   */
+  public bool $livestreamInCalendar = CONFIG['events']['livestream_in_calendar']['default'];
+  /**
    * The speaches subject
    */
   public string $subject = '';
@@ -50,6 +54,11 @@ class Event implements JsonSerializable {
    * The events link
    */
   public Link $link;
+
+  /**
+   * The YouTube stream
+   */
+  public ?FileConnection $streamLink = null;
   /**
    * This events broadcast
    */
@@ -135,6 +144,10 @@ class Event implements JsonSerializable {
         case CONFIG['events']['livestream_on_homepage']['title']:
           $this->livestreamOnHomepage = $fact->value === CONFIG['events']['livestream_on_homepage']['value'];
           break;
+        //Set livestream calendar behavior
+        case CONFIG['events']['livestream_in_calendar']['title']:
+          $this->livestreamInCalendar = $fact->value == CONFIG['events']['livestream_on_homepage']['value'];
+          break;
       }
     }
 
@@ -153,9 +166,6 @@ class Event implements JsonSerializable {
         }
       }
     }
-
-    // Set custom or default thumbnail
-    $this->setThumbnail();
   }
 
   /**
@@ -187,8 +197,14 @@ class Event implements JsonSerializable {
    */
   public function isEventBroadcast(Google_Service_YouTube_LiveBroadcast $broadcast) {
     // Check that a broadcast exists for this event
-    $videoId = $this->link->getYoutubeVideoId();
-    if (empty($videoId)) return false;
+    if ($this->streamLink == null) {
+      return false;
+    }
+    $videoId = $this->streamLink->getDownloadLink()->getYoutubeVideoId();
+    if (empty($videoId)) {
+      return false;
+    }
+
     // Compare the two video ids
     return $videoId === $broadcast['id'];
   }
@@ -234,6 +250,10 @@ class Event implements JsonSerializable {
   public function createYouTubeBroadcast(YouTube $youtube) {
     // If a broadcast already exists, we are done here
     if (isset($this->broadcast)) return;
+    if ($this->streamLink != null) {
+      //creating new stream despite link already existing, delete old link
+      $this->churchToolsApi->deleteFile($this->streamLink);
+    }
     $this->broadcastJustCreated = true;
     $this->youtube = $youtube;
     // Gather information
@@ -242,8 +262,23 @@ class Event implements JsonSerializable {
     // Create YouTube broadcast
     $this->broadcast = $this->youtube->createBroadcast($broadcastInformation['title'], $broadcastInformation['description'], $this->startTime, $this->endTime, $this->thumbnail->getDownloadLink(), $this->privacyStatus);
     // Update the event link
-    $this->link = Link::fromYouTubeBroadcast($this->broadcast);
+    $this->streamLink = FileConnection::fromExternalUrl(Link::fromYouTubeBroadcast($this->broadcast)->url);
+
     $this->update();
+  }
+
+  public function checkCalendarLink() {
+    if ($this->livestreamInCalendar) {
+      if ($this->streamLink->getDownloadLink()->url != $this->link->url) {
+        $this->link = $this->streamLink->getDownloadLink();
+        $this->updateCalendarLink();
+      }
+    } else {
+      if ($this->streamLink->getDownloadLink()->url == $this->link->url) {
+        $this->link = new Link('');
+        $this->updateCalendarLink();
+      }
+    }
   }
 
   /**
@@ -261,22 +296,33 @@ class Event implements JsonSerializable {
     $this->youtube->deleteBroadcast($this->broadcast);
     // Update the event
     unset($this->broadcast);
-    $this->link = new Link('');
+    $this->streamLink = null;
+    if ($this->livestreamInCalendar) {
+      $this->link = new Link('');
+    }
     $this->update();
+    $this->updateCalendarLink();
   }
 
   /**
    * Update the events broadcast link
    */
   protected function update() {
+    // Update the link attachment
+    if ($this->streamLink != null) {
+      $this->churchToolsApi->deleteFile($this->streamLink);
+      $this->churchToolsApi->setStreamLink($this);
+    }
+  }
+
+  protected function updateCalendarLink() {
     // Make sure this is a single event and not part of a series
     if (!$this->convertToSingleEvent()) {
       echo 'Failed to save event "' . $this->title . '" starting at ' . $this->startTime->format("Y-m-d H:i") . '<br>';
-      return;
+    } else {
+      //and then add the link to the calendar entry
+      $this->churchToolsApi->updateEventParameters($this, array('link' => $this->link->url));
     }
-
-    // Now update the link
-    $this->churchToolsApi->updateEventParameters($this, array('link' => $this->link->url));
   }
 
   /**
@@ -404,23 +450,17 @@ class Event implements JsonSerializable {
   /**
    * Set the events thumbnail
    */
-  protected function setThumbnail() {
-    $availableFiles = $this->churchToolsApi->getEventFiles($this);
-
-    // Check if any file is a thumbnail
-    foreach ($availableFiles as $file) {
-      if ($file->getName() === CONFIG['events']['thumbnail_name']) {
-        $this->thumbnail = $file;
-        return;
+  public function setThumbnail(FileConnection|null $file) {
+    if ($file !== null) {
+      $this->thumbnail = $file;
+    } else {
+      // No thumbnail was set, so use the default one
+      global $youTubeDefaultThumbnail;
+      if (null === $youTubeDefaultThumbnail) {
+        $youTubeDefaultThumbnail = FileConnection::fromExternalUrl(CONFIG['youtube']['thumbnail']);
       }
+      $this->thumbnail = $youTubeDefaultThumbnail;
     }
-
-    // No thumbnail was set, so use the default one
-    global $youTubeDefaultThumbnail;
-    if (null === $youTubeDefaultThumbnail) {
-      $youTubeDefaultThumbnail = FileConnection::fromExternalUrl(CONFIG['youtube']['thumbnail']);
-    }
-    $this->thumbnail = $youTubeDefaultThumbnail;
   }
 
   /**
@@ -439,6 +479,7 @@ class Event implements JsonSerializable {
       'livestreamOnHomepage' => $this->livestreamOnHomepage,
       'subject' => $this->subject,
       'speaker' => $this->speaker,
+      'streamLink' => $this->streamLink,
       'link' => $this->link,
       'ccCalId' => $this->ccCalId,
       'privacyStatus' => $this->privacyStatus,

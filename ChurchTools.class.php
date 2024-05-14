@@ -118,6 +118,7 @@ class ChurchTools {
     $eventDataList = $response['data'];
     $factList = $this->getAllFacts();
     $serviceTypes = $this->getAllServiceTypes();
+    $fileList = $this->getAllEventFiles();
     // Build the events
     $eventList = array();
     $now = new DateTimeImmutable();
@@ -131,6 +132,22 @@ class ChurchTools {
 
       $eventFactList = isset($factList[$eventId]) ? $factList[$eventId] : array();
       $event = new Event($eventData, $this, $eventFactList, $serviceTypes);
+
+      $thumbnail = null;
+      foreach ($this->getEventFiles($event, $fileList) as $file) {
+        if ($file->getEvent() == $eventId) {
+          switch ($file->getName()) {
+            case CONFIG['events']['thumbnail_name']:
+              $thumbnail = $file;
+              break;
+            case CONFIG['events']['stream_attachment_name']:
+              $event->streamLink = $file;
+              break;
+          }
+        }
+      }
+
+      $event->setThumbnail($thumbnail);
 
       $eventList[] = $event;
     }
@@ -228,25 +245,77 @@ class ChurchTools {
   }
 
   /**
-   * Get all of an events files
+   * Get all files attached to events
    *
-   * @param Event $event The event to get the files for
-   *
-   * @return array All the events files
+   * @return FileConnection[] the list of files
    */
-  public function getEventFiles(Event $event) {
+  public function getAllEventFiles() {
     // Get all files
     $response = $this->sendRequest('ChurchService', 'getFiles', array());
     $fileList = array();
 
-    // Convert all files to objects
+    //Filter files for type
     foreach ($response['data'] as $fileData) {
-      if ($fileData['domain_type'] == 'service' && $fileData['domain_id'] == $event->id) {
+      if ($fileData['domain_type'] == 'service') {
         $fileList[] = FileConnection::fromChurchToolsFileData($fileData, $this);
       }
     }
 
     return $fileList;
+  }
+
+  /**
+   * Get all of an events files
+   *
+   * @param Event $event The event to get the files for
+   *
+   * @return FileConnection[] All the events files
+   */
+  public function getEventFiles(Event $event, array $prefetched = array()): array {
+    if (empty($prefetched)) {
+      $fileList = $this->getAllEventFiles();
+    } else {
+      $fileList = $prefetched;
+    }
+    $filteredList = array();
+
+    // Convert all files to objects
+    foreach ($fileList as $file) {
+      if ($file->getEvent() == $event->id) {
+        $filteredList[] = $file;
+      }
+    }
+
+    return $filteredList;
+  }
+
+  /**
+   * Delete a file from ChurchTools
+   *
+   * @param FileConnection $file The file to delete
+   */
+  public function deleteFile(FileConnection $file) {
+    if ($file->getId() == 0) {
+      return; //No id set, cannot delete
+    }
+    $this->sendRequest('ChurchService', 'delFile', array('id' => $file->getId()));
+  }
+
+  /**
+   * Add an attachment to the event on churchtools linking to the attached broadcast
+   *
+   * @param Event $event The event whose stream-link should be set
+   */
+  public function setStreamLink(Event $event) {
+    if ($event->streamLink == null) {
+      return;
+    }
+    $this->sendRequest('ChurchService', 'uploadLink', array(
+      'url' => $event->streamLink->getDownloadLink(),
+      'name' => CONFIG['events']['stream_attachment_name'],
+      'domain_id' => $event->id,
+      'domain_type' => 'service',
+    ));
   }
 
   /**

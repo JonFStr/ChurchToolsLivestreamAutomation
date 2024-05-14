@@ -24,7 +24,12 @@ class FileConnection implements JsonSerializable {
   /**
    * Unique identifier
    */
-  protected int $id;
+  protected int $id = 0;
+
+  /**
+   * The event this file is attached to
+   */
+  protected int $eventId;
   /**
    * File name
    */
@@ -105,14 +110,15 @@ class FileConnection implements JsonSerializable {
     if (isset($fileData['image_options']) && null !== $fileData['image_options']) {
       // This is an actual ChurchTools file
       $file = new FileConnection(FileConnection::CONNECTIONS['churchtools'], $fileData['bezeichnung']);
-      $file->churchToolsApi = $churchToolsApi;
-      $file->id = $fileData['id'];
-      $file->churchToolsName = $fileData['filename'];
+    } else {
+      // This is an external url
+      $file = FileConnection::fromExternalUrl($fileData['filename'], $fileData['bezeichnung']);
     }
-    // This is an external url
-    else {
-      $file = FileConnection::fromExternalUrl($fileData['filename']);
-    }
+
+    $file->eventId = $fileData['domain_id'];
+    $file->churchToolsApi = $churchToolsApi;
+    $file->id = $fileData['id'];
+    $file->churchToolsName = $fileData['filename'];
 
     return $file;
   }
@@ -130,6 +136,8 @@ class FileConnection implements JsonSerializable {
     $query = $explodedUrl[count($explodedUrl) - 1];
     $explodedQuery = explode('?', $query);
     $fileName = $explodedQuery[0];
+    if ($name != null)
+      $fileName = $name;
     // Create the file connection
     $file = new FileConnection(FileConnection::CONNECTIONS['url'], $fileName);
     $file->location = $url;
@@ -144,6 +152,29 @@ class FileConnection implements JsonSerializable {
    */
   public function getName() {
     return $this->name;
+  }
+
+  /**
+   * Get the ChurchTools title
+   */
+  public function getChurchToolsName(): string {
+    return $this->churchToolsName;
+  }
+
+  /**
+   * Get the id
+   */
+  public function getId(): int {
+    return $this->id;
+  }
+
+  /**
+   * Get the event id
+   *
+   * @return int The event id this file is attached to
+   */
+  public function getEvent() {
+    return $this->eventId;
   }
 
   /**
