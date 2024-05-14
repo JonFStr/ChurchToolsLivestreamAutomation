@@ -26,15 +26,15 @@ class Event implements JsonSerializable {
    */
   public string $description = '';
   /**
-   * Whether or not livestreaming is enabled for this event
+   * Whether livestreaming is enabled for this event
    */
   public bool $livestreamEnabled = CONFIG['events']['livestream']['default'];
   /**
-   * Whether or not this events existing boradcast should be ignored
+   * Whether this event's existing broadcast should be ignored
    */
   private bool $livestreamIgnored = false;
   /**
-   * Whether or not the livestream of this event should be displayed on the homepage
+   * Whether the livestream of this event should be displayed on the homepage
    */
   public bool $livestreamOnHomepage = CONFIG['events']['livestream_on_homepage']['default'];
   /**
@@ -93,7 +93,7 @@ class Event implements JsonSerializable {
    *
    * @TODO Extract subject from data
    */
-  function __construct(array $data, ChurchTools $churchToolsApi, array $factList=array(), array $serviceTypeList=array()) {
+  function __construct(array $data, ChurchTools $churchToolsApi, array $factList = array(), array $serviceTypeList = array()) {
     $this->churchToolsApi = $churchToolsApi;
     $this->loadData($data, $factList, $serviceTypeList);
   }
@@ -105,12 +105,12 @@ class Event implements JsonSerializable {
    * @param array $factList All facts this event has
    * @param array $serviceTypeList All available service types
    */
-  public function loadData(array $data, array $factList=array(), array $serviceTypeList=array()) {
-    $this->rawData = $data; 
+  public function loadData(array $data, array $factList = array(), array $serviceTypeList = array()) {
+    $this->rawData = $data;
     // Get general info
-    $this->id = (int)$data['id'];
-    $this->categoryId = (int)$data['category_id'];
-    $this->ccCalId = (int)$data['cc_cal_id'];
+    $this->id = (int) $data['id'];
+    $this->categoryId = (int) $data['category_id'];
+    $this->ccCalId = (int) $data['cc_cal_id'];
     $this->startTime = new DateTimeImmutable($data['startdate']);
     $this->endTime = new DateTimeImmutable($data['enddate']);
     $this->title = $data['bezeichnung'];
@@ -119,9 +119,9 @@ class Event implements JsonSerializable {
 
     // Extract info from facts
     $this->setPrivacyStatus(new Fact());
-    foreach($factList as $fact) {
+    foreach ($factList as $fact) {
       switch ($fact->title) {
-        // Wether livestreaming is enabled
+        // Whether livestreaming is enabled
         case CONFIG['events']['livestream']['title']:
           $this->livestreamEnabled = $fact->value === CONFIG['events']['livestream']['value'];
           // Check if the livestream should be ignored
@@ -140,11 +140,11 @@ class Event implements JsonSerializable {
 
     // Extract info from services
     $serviceTypeMatch = array('speaker' => -1);
-    foreach($serviceTypeList as $serviceType) {
+    foreach ($serviceTypeList as $serviceType) {
       if ($serviceType->title === CONFIG['events']['speaker']) $serviceTypeMatch['speaker'] = $serviceType->id;
     }
     if (isset($data['services']) && is_array($data['services'])) {
-      foreach($data['services'] as $service) {
+      foreach ($data['services'] as $service) {
         switch ($service['service_id']) {
           // Speaker
           case $serviceTypeMatch['speaker']:
@@ -207,7 +207,7 @@ class Event implements JsonSerializable {
     $date = ' am ' . $this->startTime->format('d.m.Y');
     // Build title
     $titleReplacements = array('title', 'subject', 'speaker', 'date');
-    foreach($titleReplacements as $replacement) {
+    foreach ($titleReplacements as $replacement) {
       $broadcastTitle = str_replace("%$replacement%", ${$replacement}, $broadcastTitle);
     }
 
@@ -219,7 +219,7 @@ class Event implements JsonSerializable {
     $speaker_newline = isset($this->speaker) ? $speaker . PHP_EOL : '';
     // Build description
     $descriptionReplacements = array('title', 'subject', 'subject_newline', 'speaker', 'speaker_newline', 'date');
-    foreach($descriptionReplacements as $replacement) {
+    foreach ($descriptionReplacements as $replacement) {
       $broadcastDescription = str_replace("%$replacement%", ${$replacement}, $broadcastDescription);
     }
 
@@ -249,15 +249,15 @@ class Event implements JsonSerializable {
   /**
    * Delete the broadcast for this event
    */
-   public function deleteBroadcast() {
-     // Skip if broadcasts should be ignored
-     if ($this->livestreamIgnored) {
-       return;
-     }
+  public function deleteBroadcast() {
+    // Skip if broadcasts should be ignored
+    if ($this->livestreamIgnored) {
+      return;
+    }
     // If no broadcast exists, we are done here
     if (!isset($this->broadcast)) return;
     $this->broadcastJustCreated = false;
-    // Delete the youtube broadcast
+    // Delete the YouTube broadcast
     $this->youtube->deleteBroadcast($this->broadcast);
     // Update the event
     unset($this->broadcast);
@@ -354,7 +354,7 @@ class Event implements JsonSerializable {
       // Split the event from the series
       $response = $this->churchToolsApi->sendRequest('ChurchCal', 'saveSplittedEvent', $requestData);
 
-    if ('success' == $response['status'] && isset($response['data']['id'])) {
+      if ('success' == $response['status'] && isset($response['data']['id'])) {
         // Reload event data - the link is loaded at runtime and will be overwritten by reloading the event data
         $link = $this->link;
         $this->churchToolsApi->reloadEventData($this);

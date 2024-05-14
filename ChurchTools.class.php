@@ -49,17 +49,17 @@ class ChurchTools {
    * @return array|false The parsed json response or false on failure
    * @TODO: Implement logging
    */
-  public function sendRequest(string $module, string $function, array $params=array()) {
+  public function sendRequest(string $module, string $function, array $params = array()) {
     $requestUrl = $this->instanceUrl . '?q=' . strtolower($module) . '/ajax';
     $params['func'] = strtolower($function);
     $response = $this->httpRequests->getJson($requestUrl, $params);
 
     if (!isset($response['status']) || $response['status'] !== 'success') {
       var_export($params);
-      echo var_export($response, true);exit;
+      echo var_export($response, true);
+      exit;
       return false;
-    }
-    else return $response;
+    } else return $response;
   }
 
   /**
@@ -72,7 +72,7 @@ class ChurchTools {
    * @return array|false The parsed response or false on failure
    * @TODO: Implement logging
    */
-  protected function sendRestRequest(string $path, string $type='POST', array $params=array()) {
+  protected function sendRestRequest(string $path, string $type = 'POST', array $params = array()) {
     $requestUrl = $this->instanceUrl . 'api' . $path;
     $response = $this->httpRequests->getJson($requestUrl, $params, $type, false);
 
@@ -109,7 +109,7 @@ class ChurchTools {
    *
    * @param DateTimeInterface $latestStart Only get events that start before this time
    *
-   * @return array A list of all upcoming events
+   * @return Event[] A list of all upcoming events
    */
   public function getUpcomingEvents(DateTimeInterface $latestStart) {
     // Collect all data
@@ -123,9 +123,9 @@ class ChurchTools {
     $now = new DateTimeImmutable();
     $i = 0;
 
-    foreach($eventDataList as $eventId => $eventData) {
+    foreach ($eventDataList as $eventId => $eventData) {
       // Only keep upcoming events
-      if (new DateTimeImmutable($eventData['enddate']) < $now) continue;      
+      if (new DateTimeImmutable($eventData['enddate']) < $now) continue;
       // Make sure the event isn't too far in the future
       if ($latestStart < new DateTimeImmutable($eventData['startdate'])) continue;
 
@@ -174,9 +174,9 @@ class ChurchTools {
 
     // Combine the two
     $factList = array();
-    foreach($factsData as $eventId => $factArray) {
+    foreach ($factsData as $eventId => $factArray) {
       if (!isset($factList[$eventId])) $factList[$eventId] = array();
-      foreach($factArray as $factData) {
+      foreach ($factArray as $factData) {
         // Create a new fact object
         $fact = new Fact($factData, $factConfig);
         $factList[$eventId][] = $fact;
@@ -193,7 +193,7 @@ class ChurchTools {
   public function getAllServiceTypes() {
     $request = $this->sendRequest('ChurchService', 'getMasterData');
     $serviceTypeList = array();
-    foreach($request['data']['service'] as $serviceTypeData) {
+    foreach ($request['data']['service'] as $serviceTypeData) {
       $serviceTypeList[] = new ServiceType($serviceTypeData);
     }
     return $serviceTypeList;
@@ -213,12 +213,11 @@ class ChurchTools {
     $current_data = $this->sendRestRequest($path, 'GET')['data']['appointment'];
     unset($current_data['calendar']);
 
-    
     $current_data += array(
       "informCreator" => "false",
-    	"informMe" => "false",
+      "informMe" => "false",
     );
-    
+
     // Add parameters
     foreach ($paramsToUpdate as $key => $value) {
       $current_data[$key] = $value;
@@ -262,8 +261,7 @@ class ChurchTools {
 
     if (isset($response['data'][$event->categoryId][$event->ccCalId])) {
       return $response['data'][$event->categoryId][$event->ccCalId];
-    }
-    else {
+    } else {
       return array();
     }
   }

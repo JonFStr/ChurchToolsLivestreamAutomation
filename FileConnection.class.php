@@ -48,8 +48,7 @@ class FileConnection implements JsonSerializable {
     // Set the files connection
     if (in_array($connection, FileConnection::CONNECTIONS)) {
       $this->connection = $connection;
-    }
-    else {
+    } else {
       throw new InvalidArgumentException("Invalid file connection type");
     }
 
@@ -58,8 +57,7 @@ class FileConnection implements JsonSerializable {
       $this->name = $nameParts['name'];
       $this->extension = $nameParts['extension'];
       // TODO: Extract file type from extension
-    }
-    else {
+    } else {
       $this->name = $name;
       $this->extension = '';
     }
@@ -71,7 +69,7 @@ class FileConnection implements JsonSerializable {
    * @return Link The download link
    */
   public function getDownloadLink() {
-    switch($this->connection) {
+    switch ($this->connection) {
       case FileConnection::CONNECTIONS['url']:
         // Nothing to do here
         return new Link($this->location);
@@ -104,8 +102,8 @@ class FileConnection implements JsonSerializable {
    * @return FileConnection The create file object
    */
   public static function fromChurchToolsFileData(array $fileData, ChurchTools $churchToolsApi) {
-    // This is an actual ChurchTools file
     if (isset($fileData['image_options']) && null !== $fileData['image_options']) {
+      // This is an actual ChurchTools file
       $file = new FileConnection(FileConnection::CONNECTIONS['churchtools'], $fileData['bezeichnung']);
       $file->churchToolsApi = $churchToolsApi;
       $file->id = $fileData['id'];
@@ -126,8 +124,8 @@ class FileConnection implements JsonSerializable {
    *
    * @return FileConnection The create file object
    */
-  public static function fromExternalUrl(string $url) {
-    // Extrac the filename
+  public static function fromExternalUrl(string $url, string $name = null) {
+    // Extract the filename
     $explodedUrl = explode('/', $url);
     $query = $explodedUrl[count($explodedUrl) - 1];
     $explodedQuery = explode('?', $query);
