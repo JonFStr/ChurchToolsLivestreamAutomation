@@ -48,7 +48,7 @@ class WordPress {
       'pre_time' => $preTime->format(DateTime::ATOM),
       'start_time' => $event->startTime->format(DateTime::ATOM),
       'end_time' => $event->endTime->format(DateTime::ATOM),
-      'video_link' => $event->link->url,
+      'video_link' => $event->streamLink->getDownloadLink()->url,
       'title' => $event->title,
       'datetime' => $event->startTime->format('d.m. H:i'),
     );
