@@ -24,7 +24,7 @@ class YouTube {
     $this->client = new Google_Client();
     $this->client->setApplicationName('ChurchTools Livestream Creator');
     $this->client->setScopes([
-        'https://www.googleapis.com/auth/youtube.force-ssl',
+      'https://www.googleapis.com/auth/youtube.force-ssl',
     ]);
     $this->client->setAuthConfig('client_secret.json');
     $this->client->setAccessType('offline');
@@ -32,9 +32,8 @@ class YouTube {
     // Request a access token on first use
     if (empty(CONFIG['youtube']['refreshToken'])) {
       $this->getRefreshToken();
-    }
-    // Otherwise setup YouTube API
-    else {
+    } else {
+      // Otherwise setup YouTube API
       $this->connectWithToken();
     }
 
@@ -115,14 +114,14 @@ class YouTube {
   }
 
   /**
-   * Get all scheduled boradcasts
+   * Get all scheduled broadcasts
    *
-   * @return array A list of all scheduled boradcasts
+   * @return array A list of all scheduled broadcasts
    */
-  public function getAllScheduledBoradcasts() {
+  public function getAllScheduledBroadcasts() {
     $queryParams = [
-        'broadcastStatus' => 'upcoming',
-        'pageToken' => '',
+      'broadcastStatus' => 'upcoming',
+      'pageToken' => '',
     ];
     $broadcastList = array();
 
@@ -131,7 +130,7 @@ class YouTube {
       $response = $this->service->liveBroadcasts->listLiveBroadcasts($this::broadcastParts, $queryParams);
       $broadcastList = array_merge($broadcastList, $response['items']);
       $queryParams['pageToken'] = isset($response['nextPageToken']) ? $response['nextPageToken'] : '';
-    } while('' !== $queryParams['pageToken']);
+    } while ('' !== $queryParams['pageToken']);
 
     return $broadcastList;
   }
@@ -141,10 +140,10 @@ class YouTube {
    *
    * @return array A list of all active boradcasts
    */
-  public function getAllActiveBoradcasts() {
+  public function getAllActiveBroadcasts() {
     $queryParams = [
-        'broadcastStatus' => 'active',
-        'pageToken' => '',
+      'broadcastStatus' => 'active',
+      'pageToken' => '',
     ];
     $broadcastList = array();
 
@@ -153,7 +152,7 @@ class YouTube {
       $response = $this->service->liveBroadcasts->listLiveBroadcasts($this::broadcastParts, $queryParams);
       $broadcastList = array_merge($broadcastList, $response['items']);
       $queryParams['pageToken'] = isset($response['nextPageToken']) ? $response['nextPageToken'] : '';
-    } while('' !== $queryParams['pageToken']);
+    } while ('' !== $queryParams['pageToken']);
 
     return $broadcastList;
   }
@@ -163,8 +162,8 @@ class YouTube {
    *
    * @return array A list of all active boradcasts
    */
-  public function getAllScheduledAndActiveBoradcasts() {
-    return array_merge($this->getAllScheduledBoradcasts(), $this->getAllActiveBoradcasts());
+  public function getAllScheduledAndActiveBroadcasts() {
+    return array_merge($this->getAllScheduledBroadcasts(), $this->getAllActiveBroadcasts());
   }
 
   /**
@@ -221,7 +220,7 @@ class YouTube {
       $response = $this->service->liveStreams->listLiveStreams('snippet', $queryParams);
       $streamList = array_merge($streamList, $response['items']);
       $queryParams['pageToken'] = isset($response['nextPageToken']) ? $response['nextPageToken'] : '';
-    } while('' !== $queryParams['pageToken']);
+    } while ('' !== $queryParams['pageToken']);
 
     // Display them to the user
     echo 'No valid streamKeyId has been set yet. Please choose one from below and insert it in the config.php file under "youtube > streamKeyId":<br><br>';

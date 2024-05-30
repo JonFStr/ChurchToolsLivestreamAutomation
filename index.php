@@ -2,8 +2,8 @@
 echo '<pre>';
 
 include 'Exceptions.php';
-spl_autoload_register(function ($class_name) {
-    include $class_name . '.class.php';
+spl_autoload_register(function($class_name) {
+  include $class_name . '.class.php';
 });
 
 define('CONFIG_FILE', __DIR__ . '/config.php');
@@ -14,7 +14,7 @@ date_default_timezone_set(CONFIG['timezone']);
 
 const FORCE_RENEW = false;
 
-// Setup ChruchTools API
+// Setup ChurchTools API
 $churchtools = new ChurchTools(CONFIG['churchtools']['url'], CONFIG['churchtools']['userId'], CONFIG['churchtools']['token']);
 // Setup YouTube API
 $youtube = new YouTube();
@@ -28,8 +28,8 @@ if ($youtube->isValid()) {
   // Get all events that are x days into the future
   $datetime = new DateTime(sprintf('+%d day', CONFIG['events']['days_to_load_in_advance']));
   $eventList = $churchtools->getUpcomingEvents($datetime);
-  // Get all scheduled and active boradcasts
-  $broadcastList = $youtube->getAllScheduledAndActiveBoradcasts();
+  // Get all scheduled and active broadcasts
+  $broadcastList = $youtube->getAllScheduledAndActiveBroadcasts();
 
   // Go through all events
   foreach ($eventList as $event) {
@@ -45,10 +45,10 @@ if ($youtube->isValid()) {
       // Delete broadcast if livestream has been disabled
       $event->deleteBroadcast();
       continue;
-    }
-    else {
+    } else {
       // Create a new broadcast if this event doesn't have one already
       $event->createYouTubeBroadcast($youtube);
+      $event->checkCalendarLink();
     }
   }
 
@@ -68,8 +68,7 @@ if ($youtube->isValid()) {
     // Store new information for the next request
     file_put_contents('storedEventListHash', $eventListHash);
     echo 'UPDATED';
-  }
-  else {
+  } else {
     echo 'skipped';
   }
 }

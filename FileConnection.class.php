@@ -24,7 +24,12 @@ class FileConnection implements JsonSerializable {
   /**
    * Unique identifier
    */
-  protected int $id;
+  protected int $id = 0;
+
+  /**
+   * The event this file is attached to
+   */
+  protected int $eventId;
   /**
    * File name
    */
@@ -48,8 +53,7 @@ class FileConnection implements JsonSerializable {
     // Set the files connection
     if (in_array($connection, FileConnection::CONNECTIONS)) {
       $this->connection = $connection;
-    }
-    else {
+    } else {
       throw new InvalidArgumentException("Invalid file connection type");
     }
 
@@ -58,8 +62,7 @@ class FileConnection implements JsonSerializable {
       $this->name = $nameParts['name'];
       $this->extension = $nameParts['extension'];
       // TODO: Extract file type from extension
-    }
-    else {
+    } else {
       $this->name = $name;
       $this->extension = '';
     }
@@ -71,7 +74,7 @@ class FileConnection implements JsonSerializable {
    * @return Link The download link
    */
   public function getDownloadLink() {
-    switch($this->connection) {
+    switch ($this->connection) {
       case FileConnection::CONNECTIONS['url']:
         // Nothing to do here
         return new Link($this->location);
@@ -104,17 +107,18 @@ class FileConnection implements JsonSerializable {
    * @return FileConnection The create file object
    */
   public static function fromChurchToolsFileData(array $fileData, ChurchTools $churchToolsApi) {
-    // This is an actual ChurchTools file
     if (isset($fileData['image_options']) && null !== $fileData['image_options']) {
+      // This is an actual ChurchTools file
       $file = new FileConnection(FileConnection::CONNECTIONS['churchtools'], $fileData['bezeichnung']);
-      $file->churchToolsApi = $churchToolsApi;
-      $file->id = $fileData['id'];
-      $file->churchToolsName = $fileData['filename'];
+    } else {
+      // This is an external url
+      $file = FileConnection::fromExternalUrl($fileData['filename'], $fileData['bezeichnung']);
     }
-    // This is an external url
-    else {
-      $file = FileConnection::fromExternalUrl($fileData['filename']);
-    }
+
+    $file->eventId = $fileData['domain_id'];
+    $file->churchToolsApi = $churchToolsApi;
+    $file->id = $fileData['id'];
+    $file->churchToolsName = $fileData['filename'];
 
     return $file;
   }
@@ -126,12 +130,14 @@ class FileConnection implements JsonSerializable {
    *
    * @return FileConnection The create file object
    */
-  public static function fromExternalUrl(string $url) {
-    // Extrac the filename
+  public static function fromExternalUrl(string $url, string $name = null) {
+    // Extract the filename
     $explodedUrl = explode('/', $url);
     $query = $explodedUrl[count($explodedUrl) - 1];
     $explodedQuery = explode('?', $query);
     $fileName = $explodedQuery[0];
+    if ($name != null)
+      $fileName = $name;
     // Create the file connection
     $file = new FileConnection(FileConnection::CONNECTIONS['url'], $fileName);
     $file->location = $url;
@@ -146,6 +152,29 @@ class FileConnection implements JsonSerializable {
    */
   public function getName() {
     return $this->name;
+  }
+
+  /**
+   * Get the ChurchTools title
+   */
+  public function getChurchToolsName(): string {
+    return $this->churchToolsName;
+  }
+
+  /**
+   * Get the id
+   */
+  public function getId(): int {
+    return $this->id;
+  }
+
+  /**
+   * Get the event id
+   *
+   * @return int The event id this file is attached to
+   */
+  public function getEvent() {
+    return $this->eventId;
   }
 
   /**

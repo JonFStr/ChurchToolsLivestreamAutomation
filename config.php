@@ -39,19 +39,34 @@ define('CONFIG', array(
     'livestream_visibility' => array(
       // Name of the ChurchTools fact
       'title' => 'Livestream Sichtbarkeit',
-      // Asociate YouTube privacy states with values the fact can have
+      // Associate YouTube privacy states with values the fact can have
       'values' => array(
         YouTubePrivacyStatus::PUBLIC => 'Öffentlich',
         YouTubePrivacyStatus::UNLISTED => 'Nur über einen Link',
         YouTubePrivacyStatus::PRIVATE => 'Privat',
       )
     ),
+    /**
+     * ChurchTools fact that determines whether the YouTube-Link should be included in the link field of the calendar entry.
+     *
+     * If disabled, the link will only be saved as attachment to the event
+     */
+    'livestream_in_calendar' => array(
+      // Name of the ChurchTools fact
+      'title' => 'Livestream im Kalender',
+      // Value that fact should have
+      'value' => 'Ja',
+      // Default value
+      'default' => false,
+    ),
     // The ChurchTools service that represents an events speaker
     'speaker' => 'Predigt',
     // How many days ahead of the events start should
     'days_to_load_in_advance' => 6,
     // The name of the image (without extension) attached to a ChurchTools event, that should be used as the YouTube livestreams thumbnail
-    'thumbnail_name' => 'YouTube',
+    'thumbnail_name' => 'YouTube-Thumbnail',
+    // The name of the Event-Attachment where the YT-Stream is linked
+    'stream_attachment_name' => 'YouTube-Stream',
   ),
   /**
    * General ChurchTools settings
@@ -76,23 +91,24 @@ define('CONFIG', array(
      * %speaker% - Name of the speaker (set under "churchtools > speaker")
      * %date% - The ChurchTools events start date
      */
-    'title' => '%title% -%subject%%speaker%%date%',
-      /**
-       * How the livestreams description should be built; the following placeholders are available:
-       *
-       * %title% - The ChurchTools events title
-       * %subject% - The speakers subject
-       * %subject_newline% - Same as subject but with a linebreak at the end if the subject is not empty
-       * %speaker% - Name of the speaker (set under "churchtools > speaker")
-       * %speaker_newline% - Same as speaker but with a linebreak at the end if the speakers name is not empty
-       * %date% - The ChurchTools events start date
-       */
+    'title' => '%title% - %subject%%speaker%%date%',
+    /**
+     * How the livestreams description should be built; the following placeholders are available:
+     *
+     * - %title% - The ChurchTools events title
+     * - %subject% - The speakers subject
+     * - %subject_newline% - Same as subject but with a linebreak at the end if the subject is not empty
+     * - %speaker% - Name of the speaker (set under "churchtools > speaker")
+     * - %speaker_newline% - Same as speaker but with a linebreak at the end if the speakers name is not empty
+     * - %date% - The ChurchTools events start date
+     */
     'description' => 'Livestream aus unserer Gemeinde
 
 %speaker_newline%%subject%',
     /**
      * The default thumbnail to use
-     * Publicly accessable link to an image
+     *
+     * Publicly accessible link to an image
      */
     'thumbnail' => '',
     // The id of YouTube stream key to use (not the key itself!)
@@ -144,8 +160,8 @@ define('CONFIG', array(
      * %title% - The ChurchTools events title
      * %datetime% - The ChurchTools events start date and time
      */
-     'content_templates' => array(
-       'play_button' => '[timed-content-server show="%pre_time%" hide="%start_time%"]
+    'content_templates' => array(
+      'play_button' => '[timed-content-server show="%pre_time%" hide="%start_time%"]
 
 <div class="wp-block-getwid-video-popup"><a class="wp-block-getwid-video-popup__link" href="%video_link%"><div class="wp-block-getwid-video-popup__wrapper"><div class="wp-block-getwid-video-popup__button is-style-default"><div class="wp-block-getwid-video-popup__icon"><i class="fas fa-play"></i></div><div class="wp-block-getwid-video-popup__button-caption"><p class="wp-block-getwid-video-popup__title">%title% - Live-Stream - %datetime%</p></div></div></div></a></div>
 

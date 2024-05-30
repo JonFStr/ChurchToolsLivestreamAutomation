@@ -49,17 +49,17 @@ class ChurchTools {
    * @return array|false The parsed json response or false on failure
    * @TODO: Implement logging
    */
-  public function sendRequest(string $module, string $function, array $params=array()) {
+  public function sendRequest(string $module, string $function, array $params = array()) {
     $requestUrl = $this->instanceUrl . '?q=' . strtolower($module) . '/ajax';
     $params['func'] = strtolower($function);
     $response = $this->httpRequests->getJson($requestUrl, $params);
 
     if (!isset($response['status']) || $response['status'] !== 'success') {
       var_export($params);
-      echo var_export($response, true);exit;
+      echo var_export($response, true);
+      exit;
       return false;
-    }
-    else return $response;
+    } else return $response;
   }
 
   /**
@@ -72,7 +72,7 @@ class ChurchTools {
    * @return array|false The parsed response or false on failure
    * @TODO: Implement logging
    */
-  protected function sendRestRequest(string $path, string $type='POST', array $params=array()) {
+  protected function sendRestRequest(string $path, string $type = 'POST', array $params = array()) {
     $requestUrl = $this->instanceUrl . 'api' . $path;
     $response = $this->httpRequests->getJson($requestUrl, $params, $type, false);
 
@@ -109,7 +109,7 @@ class ChurchTools {
    *
    * @param DateTimeInterface $latestStart Only get events that start before this time
    *
-   * @return array A list of all upcoming events
+   * @return Event[] A list of all upcoming events
    */
   public function getUpcomingEvents(DateTimeInterface $latestStart) {
     // Collect all data
@@ -118,19 +118,36 @@ class ChurchTools {
     $eventDataList = $response['data'];
     $factList = $this->getAllFacts();
     $serviceTypes = $this->getAllServiceTypes();
+    $fileList = $this->getAllEventFiles();
     // Build the events
     $eventList = array();
     $now = new DateTimeImmutable();
     $i = 0;
 
-    foreach($eventDataList as $eventId => $eventData) {
+    foreach ($eventDataList as $eventId => $eventData) {
       // Only keep upcoming events
-      if (new DateTimeImmutable($eventData['enddate']) < $now) continue;      
+      if (new DateTimeImmutable($eventData['enddate']) < $now) continue;
       // Make sure the event isn't too far in the future
       if ($latestStart < new DateTimeImmutable($eventData['startdate'])) continue;
 
       $eventFactList = isset($factList[$eventId]) ? $factList[$eventId] : array();
       $event = new Event($eventData, $this, $eventFactList, $serviceTypes);
+
+      $thumbnail = null;
+      foreach ($this->getEventFiles($event, $fileList) as $file) {
+        if ($file->getEvent() == $eventId) {
+          switch ($file->getName()) {
+            case CONFIG['events']['thumbnail_name']:
+              $thumbnail = $file;
+              break;
+            case CONFIG['events']['stream_attachment_name']:
+              $event->streamLink = $file;
+              break;
+          }
+        }
+      }
+
+      $event->setThumbnail($thumbnail);
 
       $eventList[] = $event;
     }
@@ -174,9 +191,9 @@ class ChurchTools {
 
     // Combine the two
     $factList = array();
-    foreach($factsData as $eventId => $factArray) {
+    foreach ($factsData as $eventId => $factArray) {
       if (!isset($factList[$eventId])) $factList[$eventId] = array();
-      foreach($factArray as $factData) {
+      foreach ($factArray as $factData) {
         // Create a new fact object
         $fact = new Fact($factData, $factConfig);
         $factList[$eventId][] = $fact;
@@ -193,7 +210,7 @@ class ChurchTools {
   public function getAllServiceTypes() {
     $request = $this->sendRequest('ChurchService', 'getMasterData');
     $serviceTypeList = array();
-    foreach($request['data']['service'] as $serviceTypeData) {
+    foreach ($request['data']['service'] as $serviceTypeData) {
       $serviceTypeList[] = new ServiceType($serviceTypeData);
     }
     return $serviceTypeList;
@@ -213,12 +230,11 @@ class ChurchTools {
     $current_data = $this->sendRestRequest($path, 'GET')['data']['appointment'];
     unset($current_data['calendar']);
 
-    
     $current_data += array(
       "informCreator" => "false",
-    	"informMe" => "false",
+      "informMe" => "false",
     );
-    
+
     // Add parameters
     foreach ($paramsToUpdate as $key => $value) {
       $current_data[$key] = $value;
@@ -229,25 +245,77 @@ class ChurchTools {
   }
 
   /**
-   * Get all of an events files
+   * Get all files attached to events
    *
-   * @param Event $event The event to get the files for
-   *
-   * @return array All the events files
+   * @return FileConnection[] the list of files
    */
-  public function getEventFiles(Event $event) {
+  public function getAllEventFiles() {
     // Get all files
     $response = $this->sendRequest('ChurchService', 'getFiles', array());
     $fileList = array();
 
-    // Convert all files to objects
+    //Filter files for type
     foreach ($response['data'] as $fileData) {
-      if ($fileData['domain_type'] == 'service' && $fileData['domain_id'] == $event->id) {
+      if ($fileData['domain_type'] == 'service') {
         $fileList[] = FileConnection::fromChurchToolsFileData($fileData, $this);
       }
     }
 
     return $fileList;
+  }
+
+  /**
+   * Get all of an events files
+   *
+   * @param Event $event The event to get the files for
+   *
+   * @return FileConnection[] All the events files
+   */
+  public function getEventFiles(Event $event, array $prefetched = array()): array {
+    if (empty($prefetched)) {
+      $fileList = $this->getAllEventFiles();
+    } else {
+      $fileList = $prefetched;
+    }
+    $filteredList = array();
+
+    // Convert all files to objects
+    foreach ($fileList as $file) {
+      if ($file->getEvent() == $event->id) {
+        $filteredList[] = $file;
+      }
+    }
+
+    return $filteredList;
+  }
+
+  /**
+   * Delete a file from ChurchTools
+   *
+   * @param FileConnection $file The file to delete
+   */
+  public function deleteFile(FileConnection $file) {
+    if ($file->getId() == 0) {
+      return; //No id set, cannot delete
+    }
+    $this->sendRequest('ChurchService', 'delFile', array('id' => $file->getId()));
+  }
+
+  /**
+   * Add an attachment to the event on churchtools linking to the attached broadcast
+   *
+   * @param Event $event The event whose stream-link should be set
+   */
+  public function setStreamLink(Event $event) {
+    if ($event->streamLink == null) {
+      return;
+    }
+    $this->sendRequest('ChurchService', 'uploadLink', array(
+      'url' => $event->streamLink->getDownloadLink(),
+      'name' => CONFIG['events']['stream_attachment_name'],
+      'domain_id' => $event->id,
+      'domain_type' => 'service',
+    ));
   }
 
   /**
@@ -262,8 +330,7 @@ class ChurchTools {
 
     if (isset($response['data'][$event->categoryId][$event->ccCalId])) {
       return $response['data'][$event->categoryId][$event->ccCalId];
-    }
-    else {
+    } else {
       return array();
     }
   }

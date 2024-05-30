@@ -26,17 +26,21 @@ class Event implements JsonSerializable {
    */
   public string $description = '';
   /**
-   * Whether or not livestreaming is enabled for this event
+   * Whether livestreaming is enabled for this event
    */
   public bool $livestreamEnabled = CONFIG['events']['livestream']['default'];
   /**
-   * Whether or not this events existing boradcast should be ignored
+   * Whether this event's existing broadcast should be ignored
    */
   private bool $livestreamIgnored = false;
   /**
-   * Whether or not the livestream of this event should be displayed on the homepage
+   * Whether the livestream of this event should be displayed on the homepage
    */
   public bool $livestreamOnHomepage = CONFIG['events']['livestream_on_homepage']['default'];
+  /**
+   * Whether the livestream link should be written to the `link`-field in the calendar entry
+   */
+  public bool $livestreamInCalendar = CONFIG['events']['livestream_in_calendar']['default'];
   /**
    * The speaches subject
    */
@@ -50,6 +54,11 @@ class Event implements JsonSerializable {
    * The events link
    */
   public Link $link;
+
+  /**
+   * The YouTube stream
+   */
+  public ?FileConnection $streamLink = null;
   /**
    * This events broadcast
    */
@@ -93,7 +102,7 @@ class Event implements JsonSerializable {
    *
    * @TODO Extract subject from data
    */
-  function __construct(array $data, ChurchTools $churchToolsApi, array $factList=array(), array $serviceTypeList=array()) {
+  function __construct(array $data, ChurchTools $churchToolsApi, array $factList = array(), array $serviceTypeList = array()) {
     $this->churchToolsApi = $churchToolsApi;
     $this->loadData($data, $factList, $serviceTypeList);
   }
@@ -105,12 +114,12 @@ class Event implements JsonSerializable {
    * @param array $factList All facts this event has
    * @param array $serviceTypeList All available service types
    */
-  public function loadData(array $data, array $factList=array(), array $serviceTypeList=array()) {
-    $this->rawData = $data; 
+  public function loadData(array $data, array $factList = array(), array $serviceTypeList = array()) {
+    $this->rawData = $data;
     // Get general info
-    $this->id = (int)$data['id'];
-    $this->categoryId = (int)$data['category_id'];
-    $this->ccCalId = (int)$data['cc_cal_id'];
+    $this->id = (int) $data['id'];
+    $this->categoryId = (int) $data['category_id'];
+    $this->ccCalId = (int) $data['cc_cal_id'];
     $this->startTime = new DateTimeImmutable($data['startdate']);
     $this->endTime = new DateTimeImmutable($data['enddate']);
     $this->title = $data['bezeichnung'];
@@ -119,9 +128,9 @@ class Event implements JsonSerializable {
 
     // Extract info from facts
     $this->setPrivacyStatus(new Fact());
-    foreach($factList as $fact) {
+    foreach ($factList as $fact) {
       switch ($fact->title) {
-        // Wether livestreaming is enabled
+        // Whether livestreaming is enabled
         case CONFIG['events']['livestream']['title']:
           $this->livestreamEnabled = $fact->value === CONFIG['events']['livestream']['value'];
           // Check if the livestream should be ignored
@@ -135,16 +144,20 @@ class Event implements JsonSerializable {
         case CONFIG['events']['livestream_on_homepage']['title']:
           $this->livestreamOnHomepage = $fact->value === CONFIG['events']['livestream_on_homepage']['value'];
           break;
+        //Set livestream calendar behavior
+        case CONFIG['events']['livestream_in_calendar']['title']:
+          $this->livestreamInCalendar = $fact->value == CONFIG['events']['livestream_on_homepage']['value'];
+          break;
       }
     }
 
     // Extract info from services
     $serviceTypeMatch = array('speaker' => -1);
-    foreach($serviceTypeList as $serviceType) {
+    foreach ($serviceTypeList as $serviceType) {
       if ($serviceType->title === CONFIG['events']['speaker']) $serviceTypeMatch['speaker'] = $serviceType->id;
     }
     if (isset($data['services']) && is_array($data['services'])) {
-      foreach($data['services'] as $service) {
+      foreach ($data['services'] as $service) {
         switch ($service['service_id']) {
           // Speaker
           case $serviceTypeMatch['speaker']:
@@ -153,9 +166,6 @@ class Event implements JsonSerializable {
         }
       }
     }
-
-    // Set custom or default thumbnail
-    $this->setThumbnail();
   }
 
   /**
@@ -187,8 +197,14 @@ class Event implements JsonSerializable {
    */
   public function isEventBroadcast(Google_Service_YouTube_LiveBroadcast $broadcast) {
     // Check that a broadcast exists for this event
-    $videoId = $this->link->getYoutubeVideoId();
-    if (empty($videoId)) return false;
+    if ($this->streamLink == null) {
+      return false;
+    }
+    $videoId = $this->streamLink->getDownloadLink()->getYoutubeVideoId();
+    if (empty($videoId)) {
+      return false;
+    }
+
     // Compare the two video ids
     return $videoId === $broadcast['id'];
   }
@@ -207,7 +223,7 @@ class Event implements JsonSerializable {
     $date = ' am ' . $this->startTime->format('d.m.Y');
     // Build title
     $titleReplacements = array('title', 'subject', 'speaker', 'date');
-    foreach($titleReplacements as $replacement) {
+    foreach ($titleReplacements as $replacement) {
       $broadcastTitle = str_replace("%$replacement%", ${$replacement}, $broadcastTitle);
     }
 
@@ -219,7 +235,7 @@ class Event implements JsonSerializable {
     $speaker_newline = isset($this->speaker) ? $speaker . PHP_EOL : '';
     // Build description
     $descriptionReplacements = array('title', 'subject', 'subject_newline', 'speaker', 'speaker_newline', 'date');
-    foreach($descriptionReplacements as $replacement) {
+    foreach ($descriptionReplacements as $replacement) {
       $broadcastDescription = str_replace("%$replacement%", ${$replacement}, $broadcastDescription);
     }
 
@@ -234,6 +250,10 @@ class Event implements JsonSerializable {
   public function createYouTubeBroadcast(YouTube $youtube) {
     // If a broadcast already exists, we are done here
     if (isset($this->broadcast)) return;
+    if ($this->streamLink != null) {
+      //creating new stream despite link already existing, delete old link
+      $this->churchToolsApi->deleteFile($this->streamLink);
+    }
     $this->broadcastJustCreated = true;
     $this->youtube = $youtube;
     // Gather information
@@ -242,41 +262,67 @@ class Event implements JsonSerializable {
     // Create YouTube broadcast
     $this->broadcast = $this->youtube->createBroadcast($broadcastInformation['title'], $broadcastInformation['description'], $this->startTime, $this->endTime, $this->thumbnail->getDownloadLink(), $this->privacyStatus);
     // Update the event link
-    $this->link = Link::fromYouTubeBroadcast($this->broadcast);
+    $this->streamLink = FileConnection::fromExternalUrl(Link::fromYouTubeBroadcast($this->broadcast)->url);
+
     $this->update();
+  }
+
+  public function checkCalendarLink() {
+    if ($this->livestreamInCalendar) {
+      if ($this->streamLink->getDownloadLink()->url != $this->link->url) {
+        $this->link = $this->streamLink->getDownloadLink();
+        $this->updateCalendarLink();
+      }
+    } else {
+      if ($this->streamLink->getDownloadLink()->url == $this->link->url) {
+        $this->link = new Link('');
+        $this->updateCalendarLink();
+      }
+    }
   }
 
   /**
    * Delete the broadcast for this event
    */
-   public function deleteBroadcast() {
-     // Skip if broadcasts should be ignored
-     if ($this->livestreamIgnored) {
-       return;
-     }
+  public function deleteBroadcast() {
+    // Skip if broadcasts should be ignored
+    if ($this->livestreamIgnored) {
+      return;
+    }
     // If no broadcast exists, we are done here
     if (!isset($this->broadcast)) return;
     $this->broadcastJustCreated = false;
-    // Delete the youtube broadcast
+    // Delete the YouTube broadcast
     $this->youtube->deleteBroadcast($this->broadcast);
     // Update the event
     unset($this->broadcast);
-    $this->link = new Link('');
+    $this->streamLink = null;
+    if ($this->livestreamInCalendar) {
+      $this->link = new Link('');
+    }
     $this->update();
+    $this->updateCalendarLink();
   }
 
   /**
    * Update the events broadcast link
    */
   protected function update() {
+    // Update the link attachment
+    if ($this->streamLink != null) {
+      $this->churchToolsApi->deleteFile($this->streamLink);
+      $this->churchToolsApi->setStreamLink($this);
+    }
+  }
+
+  protected function updateCalendarLink() {
     // Make sure this is a single event and not part of a series
     if (!$this->convertToSingleEvent()) {
       echo 'Failed to save event "' . $this->title . '" starting at ' . $this->startTime->format("Y-m-d H:i") . '<br>';
-      return;
+    } else {
+      //and then add the link to the calendar entry
+      $this->churchToolsApi->updateEventParameters($this, array('link' => $this->link->url));
     }
-
-    // Now update the link
-    $this->churchToolsApi->updateEventParameters($this, array('link' => $this->link->url));
   }
 
   /**
@@ -354,7 +400,7 @@ class Event implements JsonSerializable {
       // Split the event from the series
       $response = $this->churchToolsApi->sendRequest('ChurchCal', 'saveSplittedEvent', $requestData);
 
-    if ('success' == $response['status'] && isset($response['data']['id'])) {
+      if ('success' == $response['status'] && isset($response['data']['id'])) {
         // Reload event data - the link is loaded at runtime and will be overwritten by reloading the event data
         $link = $this->link;
         $this->churchToolsApi->reloadEventData($this);
@@ -404,23 +450,17 @@ class Event implements JsonSerializable {
   /**
    * Set the events thumbnail
    */
-  protected function setThumbnail() {
-    $availableFiles = $this->churchToolsApi->getEventFiles($this);
-
-    // Check if any file is a thumbnail
-    foreach ($availableFiles as $file) {
-      if ($file->getName() === CONFIG['events']['thumbnail_name']) {
-        $this->thumbnail = $file;
-        return;
+  public function setThumbnail(FileConnection|null $file) {
+    if ($file !== null) {
+      $this->thumbnail = $file;
+    } else {
+      // No thumbnail was set, so use the default one
+      global $youTubeDefaultThumbnail;
+      if (null === $youTubeDefaultThumbnail) {
+        $youTubeDefaultThumbnail = FileConnection::fromExternalUrl(CONFIG['youtube']['thumbnail']);
       }
+      $this->thumbnail = $youTubeDefaultThumbnail;
     }
-
-    // No thumbnail was set, so use the default one
-    global $youTubeDefaultThumbnail;
-    if (null === $youTubeDefaultThumbnail) {
-      $youTubeDefaultThumbnail = FileConnection::fromExternalUrl(CONFIG['youtube']['thumbnail']);
-    }
-    $this->thumbnail = $youTubeDefaultThumbnail;
   }
 
   /**
@@ -439,6 +479,7 @@ class Event implements JsonSerializable {
       'livestreamOnHomepage' => $this->livestreamOnHomepage,
       'subject' => $this->subject,
       'speaker' => $this->speaker,
+      'streamLink' => $this->streamLink,
       'link' => $this->link,
       'ccCalId' => $this->ccCalId,
       'privacyStatus' => $this->privacyStatus,
